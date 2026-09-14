@@ -1,0 +1,700 @@
+<div class="usuarios-container">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <h4 class="mb-0">
+          <i class="fas fa-users me-2"></i>
+          Gestão de Usuários
+        </h4>
+        <small class="text-muted"
+          >{{ totalUsuarios }} usuário(s) cadastrado(s)</small
+        >
+      </div>
+      <div class="col-md-6 text-end">
+        <button
+          class="btn btn-primary"
+          (click)="abrirModal()"
+          [disabled]="(apiLoadingListaUsuarios$ | async) === true"
+        >
+          <i class="fas fa-plus me-2"></i>
+          Novo Usuário
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtro de busca -->
+  <div class="filters-container">
+    <div class="row">
+      <div class="col-md-6">
+        <label class="form-label">Buscar Usuário</label>
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="fas fa-search"></i>
+          </span>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Digite o nome ou email do usuário..."
+            [(ngModel)]="filtro"
+            (input)="aplicarFiltro()"
+            [disabled]="(apiLoadingListaUsuarios$ | async) === true"
+          />
+        </div>
+      </div>
+      <div class="col-md-6">
+        <!-- Espaço para futuras funcionalidades -->
+      </div>
+    </div>
+  </div>
+
+  @if (apiLoadingListaUsuarios$ | async) {
+    <app-skeleton
+      [isVisible]="true"
+      height="200px"
+      [shape]="'rounded'"
+      [animation]="'wave'"
+    ></app-skeleton>
+  } @else {
+    <div class="table-container usuarios-table-container">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th class="p-2 table-name-column">Nome</th>
+              <th class="d-none d-md-table-cell p-2 table-email-column">
+                Email
+              </th>
+              <th
+                class="d-none d-md-table-cell p-2 table-status-column text-center"
+              >
+                Status
+              </th>
+              <th class="p-2 text-center table-actions-column">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="
+                let usuario of usuariosFiltrados
+                  | paginate
+                    : { itemsPerPage: itensPorPagina, currentPage: page }
+              "
+              class="table-clickable-row"
+              title="Clique para editar"
+            >
+              <td (click)="editarUsuario(usuario)" class="p-2">
+                <div class="d-flex align-items-center ps-2">
+                  <div class="user-avatar me-2 me-md-3">
+                    {{ getInitials(usuario.name) }}
+                  </div>
+                  <div class="flex-grow-1 table-cell-content">
+                    <strong
+                      class="text-truncate d-block table-name-text"
+                      [title]="usuario.name"
+                    >
+                      {{ usuario.name }}
+                    </strong>
+                    <!-- Perfil de Acesso abaixo do nome -->
+                    <small class="text-muted d-block">
+                      <span
+                        class="badge"
+                        [ngClass]="getBadgeClassForRole(usuario.role)"
+                        [title]="usuario.role"
+                      >
+                        {{ usuario.role }}
+                      </span>
+                    </small>
+                    <!-- Email em mobile -->
+                    <small class="text-muted d-md-none d-block">
+                      {{ usuario.email }}
+                    </small>
+                  </div>
+                </div>
+              </td>
+              <td
+                (click)="editarUsuario(usuario)"
+                class="d-none d-md-table-cell p-2"
+              >
+                <span class="text-truncate" [title]="usuario.email">
+                  {{ usuario.email }}
+                </span>
+              </td>
+              <td
+                (click)="editarUsuario(usuario)"
+                class="d-none d-md-table-cell text-center p-2"
+              >
+                <span
+                  class="badge"
+                  [ngClass]="getBadgeClassForStatus(usuario.status)"
+                >
+                  {{ usuario.status }}
+                </span>
+              </td>
+              <td class="p-2">
+                <div class="btn-group btn-group-sm d-flex d-md-inline-flex">
+                  <button
+                    class="btn btn-outline-primary"
+                    (click)="editarUsuario(usuario)"
+                    title="Editar"
+                  >
+                    <i class="fas fa-edit"></i>
+                    <span class="d-none d-sm-inline ms-1">Editar</span>
+                  </button>
+                  <button
+                    class="btn btn-outline-danger"
+                    (click)="confirmarExclusao(usuario)"
+                    title="Excluir"
+                  >
+                    <i class="fas fa-trash"></i>
+                    <span class="d-none d-sm-inline ms-1">Excluir</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="usuariosFiltrados.length === 0">
+              <td colspan="2" class="d-md-none text-center text-muted py-4">
+                <div class="empty-state-mobile">
+                  <i class="fas fa-inbox fa-lg mb-2"></i>
+                  <br />
+                  <small>
+                    {{
+                      filtro
+                        ? 'Nenhum usuário encontrado'
+                        : 'Nenhum usuário cadastrado'
+                    }}
+                  </small>
+                </div>
+              </td>
+              <td
+                colspan="4"
+                class="d-none d-md-table-cell text-center text-muted py-4"
+              >
+                <div class="empty-state-desktop">
+                  <i class="fas fa-inbox fa-2x mb-2"></i>
+                  <br />
+                  {{
+                    filtro
+                      ? 'Nenhum usuário encontrado com o filtro aplicado'
+                      : 'Nenhum usuário cadastrado ainda'
+                  }}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <pagination-controls
+          *ngIf="usuariosFiltrados.length > itensPorPagina"
+          paginationId="usuarios"
+          (pageChange)="page = $event"
+          previousLabel="Anterior"
+          nextLabel="Próximo"
+          class="pagination-container"
+        >
+        </pagination-controls>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Modal de Cadastro/Edição -->
+<div class="modal fade" id="usuarioModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-user-tie me-2"></i>
+          {{ usuarioEditando ? 'Editar Usuário' : 'Novo Usuário' }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          [disabled]="salvando"
+        ></button>
+      </div>
+
+      <form [formGroup]="usuarioForm" (ngSubmit)="salvarUsuario()">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Nome *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="name"
+                  placeholder="Digite o nome do usuário"
+                  [class.is-invalid]="name?.invalid && name?.touched"
+                />
+                <!-- [disabled]="salvando" -->
+                <div
+                  *ngIf="name?.invalid && name?.touched"
+                  class="invalid-feedback"
+                >
+                  Nome é obrigatório
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Email *</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  formControlName="email"
+                  placeholder="Digite o email do usuário"
+                  [class.is-invalid]="email?.invalid && email?.touched"
+                />
+                <!-- [disabled]="salvando" -->
+                <div
+                  *ngIf="email?.invalid && email?.touched"
+                  class="invalid-feedback"
+                >
+                  Email é obrigatório
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="mb-3">
+                <div class="mb-3">
+                  <label for="password" class="form-label">
+                    Senha
+                    <span *ngIf="isPasswordRequired">*</span>
+                    <small
+                      *ngIf="usuarioEditando && !isPasswordRequired"
+                      class="text-muted"
+                    >
+                      (opcional - deixe vazio para manter a senha atual)
+                    </small>
+                  </label>
+                  <div class="input-group">
+                    <input
+                      [type]="mostrarPassword ? 'text' : 'password'"
+                      class="form-control"
+                      formControlName="password"
+                      [placeholder]="
+                        usuarioEditando
+                          ? 'Digite nova senha ou deixe vazio para manter atual'
+                          : 'Digite a senha do usuário'
+                      "
+                      [class.is-invalid]="
+                        (password?.invalid && password?.touched) ||
+                        (usuarioForm.invalid && passwordErrors.length > 0)
+                      "
+                    />
+                    <!-- [disabled]="salvando" -->
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary border"
+                      (click)="mostrarPassword = !mostrarPassword"
+                      title="Mostrar/Ocultar senha"
+                    >
+                      <i
+                        class="fas"
+                        [ngClass]="mostrarPassword ? 'fa-eye-slash' : 'fa-eye'"
+                      ></i>
+                    </button>
+                    <div
+                      *ngIf="
+                        (password?.invalid && password?.touched) ||
+                        (usuarioForm.invalid && passwordErrors.length > 0)
+                      "
+                      class="invalid-feedback"
+                    >
+                      <div *ngFor="let error of passwordErrors">
+                        {{ error }}
+                      </div>
+                      <div
+                        *ngIf="
+                          password?.hasError('minlength') &&
+                          passwordErrors.length === 0
+                        "
+                      >
+                        A senha deve ter pelo menos 6 caracteres
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="mb-3">
+                <div class="mb-3">
+                  <label for="confirmPassword" class="form-label">
+                    Confirmação senha
+                    <span *ngIf="isPasswordRequired">*</span>
+                    <small
+                      *ngIf="usuarioEditando && !isPasswordRequired"
+                      class="text-muted"
+                    >
+                      (opcional)
+                    </small>
+                  </label>
+                  <div class="input-group">
+                    <input
+                      [type]="mostrarConfirmacaoPassword ? 'text' : 'password'"
+                      class="form-control"
+                      formControlName="confirmPassword"
+                      [placeholder]="
+                        usuarioEditando
+                          ? 'Confirme a nova senha'
+                          : 'Confirme a senha do usuário'
+                      "
+                      [class.is-invalid]="
+                        (confirmPassword?.invalid &&
+                          confirmPassword?.touched) ||
+                        (usuarioForm.invalid &&
+                          confirmPasswordErrors.length > 0)
+                      "
+                    />
+                    <!-- [disabled]="salvando" -->
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary border"
+                      (click)="
+                        mostrarConfirmacaoPassword = !mostrarConfirmacaoPassword
+                      "
+                      title="Mostrar/Ocultar senha"
+                    >
+                      <i
+                        class="fas"
+                        [ngClass]="
+                          mostrarConfirmacaoPassword ? 'fa-eye-slash' : 'fa-eye'
+                        "
+                      ></i>
+                    </button>
+                    <div
+                      *ngIf="
+                        (confirmPassword?.invalid &&
+                          confirmPassword?.touched) ||
+                        (usuarioForm.invalid &&
+                          confirmPasswordErrors.length > 0)
+                      "
+                      class="invalid-feedback"
+                    >
+                      <div *ngFor="let error of confirmPasswordErrors">
+                        {{ error }}
+                      </div>
+                      <div
+                        *ngIf="
+                          confirmPassword?.hasError('minlength') &&
+                          confirmPasswordErrors.length === 0
+                        "
+                      >
+                        A confirmação de senha deve ter pelo menos 6 caracteres
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Perfil de Acesso *</label>
+                <ng-select
+                  [items]="ePerfilUsuario | keyvalue"
+                  bindLabel="value"
+                  bindValue="value"
+                  placeholder="Selecione um perfil de acesso"
+                  formControlName="role"
+                  notFoundText="Nenhum perfil encontrado"
+                  (change)="limparArrayPermissoes()"
+                  [class.is-invalid]="role?.invalid && role?.touched"
+                >
+                  <!-- [disabled]="salvando" -->
+                </ng-select>
+                <div
+                  *ngIf="role?.invalid && role?.touched"
+                  class="invalid-feedback"
+                >
+                  Perfil de acesso é obrigatório
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Status *</label>
+                <ng-select
+                  [items]="eStatusUsuario | keyvalue"
+                  bindLabel="value"
+                  bindValue="value"
+                  placeholder="Selecione um status do usuário"
+                  formControlName="status"
+                  notFoundText="Nenhum status encontrado"
+                  [class.is-invalid]="status?.invalid && status?.touched"
+                >
+                  <!-- [disabled]="salvando" -->
+                </ng-select>
+                <div
+                  *ngIf="status?.invalid && status?.touched"
+                  class="invalid-feedback"
+                >
+                  Status é obrigatório
+                </div>
+              </div>
+            </div>
+
+            <!-- <div class="col-md-6">
+              <div class="mb-3">&nbsp;</div>
+            </div> -->
+
+            @if (isVisualizadorSelecionado) {
+              <div class="mb-3">
+                <label class="form-label">Indicantes *</label>
+                <div class="row">
+                  <div class="col-md-9 col-12">
+                    <ng-select
+                      [items]="indicantes"
+                      bindLabel="nome"
+                      placeholder="Selecione um indicante"
+                      notFoundText="Nenhum indicante encontrado"
+                      [(ngModel)]="selectIndicante"
+                      [ngModelOptions]="{ standalone: true }"
+                      [disabled]="hasTodosIndicantesSelecionados() || salvando"
+                      #selectIndicanteForm="ngModel"
+                      required
+                      [class.is-invalid]="
+                        selectIndicanteForm?.invalid &&
+                        selectIndicanteForm?.touched &&
+                        indicantesSelecionados.length === 0
+                      "
+                    >
+                    </ng-select>
+                    <div
+                      *ngIf="
+                        selectIndicanteForm?.invalid &&
+                        selectIndicanteForm?.touched &&
+                        indicantesSelecionados.length === 0
+                      "
+                      class="invalid-feedback d-block"
+                    >
+                      Indicante é obrigatório
+                    </div>
+                  </div>
+                  <div
+                    class="col-md-3 col-12 d-flex justify-content-center align-items-start"
+                  >
+                    <button
+                      type="button"
+                      class="btn btn-success"
+                      title="Adicionar Indicante"
+                      (click)="adicionarIndicantes()"
+                      [disabled]="
+                        !selectIndicante || !selectIndicante.nome || salvando
+                      "
+                    >
+                      <i class="fas fa-plus me-1"></i>
+                      Adicionar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <div
+              class="col-md-12 indicantes-container"
+              *ngIf="indicantesSelecionados.length > 0"
+            >
+              <small class="text-muted">Indicantes adicionados:</small>
+              <div class="mb-3">
+                <div class="box-list-flex">
+                  <span
+                    class="badge item-badge"
+                    *ngFor="let indicante of indicantesSelecionados"
+                    [title]="indicante.nome"
+                  >
+                    <span class="item-badge-text">{{ indicante.nome }}</span>
+                    <button
+                      type="button"
+                      class="btn-close btn-close-white item-remove-btn"
+                      (click)="removerIndicante(indicante)"
+                      title="Remover Indicante"
+                      [disabled]="salvando"
+                    ></button>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            @if (isVisualizadorSelecionado) {
+              <div class="mb-3">
+                <label class="form-label">Secretarias *</label>
+                <div class="row">
+                  <div class="col-md-9 col-12">
+                    <ng-select
+                      [items]="secretarias"
+                      bindLabel="nome"
+                      placeholder="Selecione uma secretaria"
+                      notFoundText="Nenhuma secretaria encontrada"
+                      [(ngModel)]="selectSecretaria"
+                      [ngModelOptions]="{ standalone: true }"
+                      [disabled]="hasTodosSecretariasSelecionadas() || salvando"
+                      #selectSecretariaForm="ngModel"
+                      required
+                      [class.is-invalid]="
+                        selectSecretariaForm?.invalid &&
+                        selectSecretariaForm?.touched &&
+                        secretariasSelecionadas.length === 0
+                      "
+                    >
+                    </ng-select>
+                    <div
+                      *ngIf="
+                        selectSecretariaForm?.invalid &&
+                        selectSecretariaForm?.touched &&
+                        secretariasSelecionadas.length === 0
+                      "
+                      class="invalid-feedback d-block"
+                    >
+                      Secretaria é obrigatória
+                    </div>
+                  </div>
+                  <div
+                    class="col-md-3 col-12 d-flex justify-content-center align-items-start"
+                  >
+                    <button
+                      type="button"
+                      class="btn btn-success"
+                      title="Adicionar Secretaria"
+                      (click)="adicionarSecretarias()"
+                      [disabled]="
+                        !selectSecretaria || !selectSecretaria.nome || salvando
+                      "
+                    >
+                      <i class="fas fa-plus me-1"></i>
+                      Adicionar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <div
+              class="col-md-12 secretarias-container"
+              *ngIf="secretariasSelecionadas.length > 0"
+            >
+              <small class="text-muted">Secretarias adicionadas:</small>
+              <div class="mb-3">
+                <div class="box-list-flex">
+                  <span
+                    class="badge item-badge"
+                    *ngFor="let secretaria of secretariasSelecionadas"
+                    [title]="secretaria.nome"
+                  >
+                    <span class="item-badge-text">{{ secretaria.nome }}</span>
+                    <button
+                      type="button"
+                      class="btn-close btn-close-white item-remove-btn"
+                      (click)="removerSecretaria(secretaria)"
+                      title="Remover Secretaria"
+                      [disabled]="salvando"
+                    ></button>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+            [disabled]="salvando"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary d-flex align-items-center justify-content-center"
+            [disabled]="disableButtonSalvar"
+          >
+            <span *ngIf="salvando" class="loading me-2"></span>
+            <i *ngIf="!salvando" class="fas fa-save me-2"></i>
+            {{ usuarioEditando ? 'Atualizar' : 'Salvar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+          Confirmar Exclusão
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          [disabled]="excluindo"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Tem certeza que deseja excluir o usuário:
+          <strong>{{ usuarioParaExcluir?.name }}</strong
+          >?
+        </p>
+        <p>
+          Email: <strong>{{ usuarioParaExcluir?.email }}</strong
+          >?
+        </p>
+        <p class="text-muted">
+          Ao excluir o usuário ele irá aparecer na listagem ainda, porém ficará
+          com o status de excluído.
+        </p>
+
+        <!-- <div
+          *ngIf="usuarioParaExcluir?.qtdPessoasCadastradas || 0 > 0"
+          class="alert alert-warning"
+        >
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Atenção:</strong> Este usuário possui
+          {{ usuarioParaExcluir?.qtdPessoasCadastradas || 0 }}
+          pessoa(s) vinculada(s). A exclusão não será permitida.
+        </div> -->
+        <!-- <p
+          class="text-muted"
+          *ngIf="usuarioParaExcluir?.qtdPessoasCadastradas === 0"
+        >
+          Esta ação não pode ser desfeita.
+        </p> -->
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-bs-dismiss="modal"
+          [disabled]="excluindo"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger d-flex align-items-center justify-content-center"
+          (click)="excluirUsuario()"
+          title="Excluir Usuário"
+          [disabled]="excluindo"
+        >
+          <span *ngIf="excluindo" class="loading me-2"></span>
+          <i *ngIf="!excluindo" class="fas fa-trash me-2"></i>
+          Excluir
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,53 @@
+name: 'Merge to Master'
+description: 'Handle PR merge to master and create production tag'
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge-to-master-branch:
+    name: '🔀 Merge to Master Branch'
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'master'
+    uses: ./.github/workflows/02-create-mr.yaml
+    with:
+      release-branch: ${{ github.event.pull_request.base.ref }}
+    secrets: inherit
+
+  notify-release:
+    name: '📢 Notificar Release'
+    needs: merge-to-master-branch
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Display release summary
+        run: |
+          echo "🎉 RELEASE DE PRODUÇÃO CONCLUÍDA! 🎉"
+          echo "===================================="
+          echo "📦 Versão: v${{ steps.version.outputs.version }}"
+          echo "🏷️ Tag: v${{ steps.version.outputs.version }}"
+          echo "📋 PR: #${{ github.event.pull_request.number }}"
+          echo "👤 Autor: ${{ github.event.pull_request.user.login }}"
+          echo "🌐 Branch: master"
+          echo "===================================="
+          echo "✅ Deploy para produção pode ser iniciado!"

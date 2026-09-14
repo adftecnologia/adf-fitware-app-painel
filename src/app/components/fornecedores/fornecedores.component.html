@@ -1,0 +1,711 @@
+<div class="fornecedores-container">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <h4 class="mb-0">
+          <i class="fas fa-user-tie me-2"></i>
+          Gestão de Fornecedores
+        </h4>
+        <small class="text-muted"
+          >{{ totalFornecedores }} fornecedor(es) cadastrado(s)</small
+        >
+      </div>
+      <div class="col-md-6 text-end" *ngIf="featureToggleService.canCadastrar">
+        <button
+          class="btn btn-primary"
+          (click)="abrirModal()"
+          data-bs-toggle="modal"
+          data-bs-target="#fornecedorModal"
+        >
+          <i class="fas fa-plus me-2"></i>
+          Novo Fornecedor
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtro de busca -->
+  <ng-container *ngIf="featureToggleService.canVisualizar">
+    <div class="filters-container">
+      <div class="row">
+        <div class="col-md-6">
+          <label class="form-label">Buscar Fornecedor</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-search"></i>
+            </span>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Digite o nome do fornecedor..."
+              [(ngModel)]="filtro"
+              (input)="aplicarFiltro()"
+            />
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Status</label>
+          <select
+            class="form-select"
+            [(ngModel)]="filtroStatus"
+            (change)="aplicarFiltro()"
+          >
+            <option value="">Todos</option>
+            <option *ngFor="let s of statusOptions" [value]="s">
+              {{ s }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela de fornecedores -->
+    <div class="table-container fornecedores-table-container">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th class="p-2 table-name-column">Nome</th>
+              <th class="d-none d-md-table-cell p-2 text-center">Status</th>
+              <th class="d-none d-lg-table-cell p-2 text-center">Contato</th>
+              <th class="d-none d-lg-table-cell p-2 text-center">E-mail</th>
+              <th class="p-2 text-center table-actions-column">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="
+                let fornecedor of fornecedoresFiltrados
+                  | paginate
+                    : { itemsPerPage: itensPorPagina, currentPage: page }
+              "
+              class="table-clickable-row"
+              title="Clique para editar"
+            >
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#fornecedorModal"
+                (click)="editarFornecedor(fornecedor)"
+                class="p-2"
+              >
+                <div class="d-flex align-items-center ps-2">
+                  <div class="user-avatar me-2 me-md-3">
+                    {{ getInitials(fornecedor.nome) }}
+                  </div>
+                  <div class="flex-grow-1 table-cell-content">
+                    <strong
+                      class="text-truncate d-block table-name-text"
+                      [title]="fornecedor.nome"
+                    >
+                      {{ fornecedor.nome }}
+                    </strong>
+                    <!-- Sub-info mobile -->
+                    <small class="d-md-none me-2">
+                      <span [class]="getStatusBadgeClass(fornecedor.status)">
+                        {{ fornecedor.status }}
+                      </span>
+                    </small>
+                    <small class="text-muted d-md-none d-block">
+                      {{ fornecedor.telefone || '—' }}
+                    </small>
+                    <small class="text-muted d-lg-none d-block text-truncate">
+                      {{ fornecedor.email || '—' }}
+                    </small>
+                  </div>
+                </div>
+              </td>
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#fornecedorModal"
+                (click)="editarFornecedor(fornecedor)"
+                class="d-none d-md-table-cell text-center p-2"
+              >
+                <span [class]="getStatusBadgeClass(fornecedor.status)">
+                  {{ fornecedor.status }}
+                </span>
+              </td>
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#fornecedorModal"
+                (click)="editarFornecedor(fornecedor)"
+                class="d-none d-lg-table-cell text-center p-2"
+              >
+                {{ fornecedor.telefone || '—' }}
+              </td>
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#fornecedorModal"
+                (click)="editarFornecedor(fornecedor)"
+                class="d-none d-lg-table-cell text-center p-2"
+              >
+                {{ fornecedor.email || '—' }}
+              </td>
+              <td class="p-2">
+                <div class="btn-group btn-group-sm d-flex d-md-inline-flex">
+                  <button
+                    class="btn btn-outline-primary"
+                    (click)="editarFornecedor(fornecedor)"
+                    data-bs-toggle="modal"
+                    data-bs-target="#fornecedorModal"
+                    [title]="
+                      featureToggleService.canCadastrar
+                        ? 'Editar'
+                        : 'Visualizar'
+                    "
+                  >
+                    <i
+                      class="fas"
+                      [ngClass]="
+                        featureToggleService.canCadastrar ? 'fa-edit' : 'fa-eye'
+                      "
+                    ></i>
+                    <span class="d-none d-sm-inline ms-1">{{
+                      featureToggleService.canCadastrar
+                        ? 'Editar'
+                        : 'Visualizar'
+                    }}</span>
+                  </button>
+                  <button
+                    class="btn btn-outline-danger"
+                    (click)="confirmarExclusao(fornecedor)"
+                    title="Excluir"
+                    *ngIf="featureToggleService.isUsuarioAdmin"
+                  >
+                    <i class="fas fa-trash"></i>
+                    <span class="d-none d-sm-inline ms-1">Excluir</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="fornecedoresFiltrados.length === 0">
+              <td colspan="5" class="text-center text-muted py-4">
+                <div class="d-none d-md-block empty-state-desktop">
+                  <i class="fas fa-inbox fa-2x mb-2"></i>
+                  <br />
+                  {{
+                    filtro
+                      ? 'Nenhum fornecedor encontrado com o filtro aplicado'
+                      : 'Nenhum fornecedor cadastrado ainda'
+                  }}
+                </div>
+                <div class="d-md-none empty-state-mobile">
+                  <i class="fas fa-inbox fa-lg mb-2"></i>
+                  <br />
+                  <small>
+                    {{
+                      filtro
+                        ? 'Nenhum fornecedor encontrado'
+                        : 'Nenhum fornecedor cadastrado'
+                    }}
+                  </small>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <pagination-controls
+          *ngIf="fornecedoresFiltrados.length > itensPorPagina"
+          paginationId="fornecedores"
+          (pageChange)="page = $event"
+          previousLabel="Anterior"
+          nextLabel="Próximo"
+          class="pagination-container"
+        >
+        </pagination-controls>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- Modal de Cadastro/Edição -->
+<div class="modal fade" id="fornecedorModal" tabindex="-1">
+  <div
+    class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fornecedores-dialog"
+  >
+    <div class="modal-content modal-fornecedores-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-user-tie me-2"></i>
+          {{ fornecedorEditando ? 'Editar Fornecedor' : 'Novo Fornecedor' }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+
+      <form [formGroup]="fornecedorForm" (ngSubmit)="salvarFornecedor()">
+        <div class="modal-body">
+          <ul class="nav nav-tabs mb-3" id="fornecedorTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active buttom-tab"
+                id="fn-informacoes-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#fn-informacoes"
+                type="button"
+                role="tab"
+              >
+                Informações
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link buttom-tab"
+                id="fn-ordens-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#fn-ordens"
+                type="button"
+                role="tab"
+              >
+                Dados Ordem de Compra
+                <span
+                  *ngIf="ordensCompraDoFornecedor.length > 0"
+                  class="badge bg-primary ms-1"
+                  >{{ ordensCompraDoFornecedor.length }}</span
+                >
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- Tab: Informações -->
+            <div
+              class="tab-pane fade show active"
+              id="fn-informacoes"
+              role="tabpanel"
+            >
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Nome *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="nome"
+                    placeholder="Digite o nome do fornecedor"
+                    [class.is-invalid]="nome?.invalid && nome?.touched"
+                  />
+                  <div
+                    *ngIf="nome?.invalid && nome?.touched"
+                    class="invalid-feedback"
+                  >
+                    Nome do fornecedor é obrigatório
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">CPF/CNPJ *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="cpfCnpj"
+                    mask="000.000.000-00||00.000.000/0000-00"
+                    [dropSpecialCharacters]="false"
+                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                    [class.is-invalid]="cpfCnpj?.invalid && cpfCnpj?.touched"
+                  />
+                  <div
+                    *ngIf="cpfCnpj?.invalid && cpfCnpj?.touched"
+                    class="invalid-feedback"
+                  >
+                    <span *ngIf="cpfCnpj?.errors?.['required']"
+                      >CPF/CNPJ é obrigatório</span
+                    >
+                    <span *ngIf="cpfCnpj?.errors?.['cpfCnpjLength']"
+                      >CPF deve ter 11 dígitos e CNPJ deve ter 14 dígitos</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Categoria *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="categoria"
+                    placeholder="Digite a categoria do fornecedor"
+                    [class.is-invalid]="
+                      categoria?.invalid && categoria?.touched
+                    "
+                  />
+                  <div
+                    *ngIf="categoria?.invalid && categoria?.touched"
+                    class="invalid-feedback"
+                  >
+                    Categoria é obrigatória
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Status *</label>
+                  <select
+                    class="form-select"
+                    formControlName="status"
+                    [class.is-invalid]="status?.invalid && status?.touched"
+                  >
+                    <option *ngFor="let s of statusOptions" [value]="s">
+                      {{ s }}
+                    </option>
+                  </select>
+                  <div
+                    *ngIf="status?.invalid && status?.touched"
+                    class="invalid-feedback"
+                  >
+                    Status é obrigatório
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Telefone</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="telefone"
+                    mask="(00) 0000-0000||(00) 00000-0000"
+                    [dropSpecialCharacters]="false"
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-8 mb-3">
+                  <label class="form-label">E-mail</label>
+                  <input
+                    type="email"
+                    class="form-control"
+                    formControlName="email"
+                    placeholder="Digite o e-mail"
+                    [class.is-invalid]="email?.invalid && email?.touched"
+                  />
+                  <div
+                    *ngIf="email?.invalid && email?.touched"
+                    class="invalid-feedback"
+                  >
+                    E-mail inválido
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">CEP</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="cep"
+                    mask="00000-000"
+                    [dropSpecialCharacters]="false"
+                    placeholder="00000-000"
+                  />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-8 mb-3">
+                  <label class="form-label">Rua</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="rua"
+                    placeholder="Digite o nome da rua"
+                  />
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Número</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="numero"
+                    placeholder="Nº"
+                  />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Bairro</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="bairro"
+                    placeholder="Digite o bairro"
+                  />
+                </div>
+                <div class="col-md-5 mb-3">
+                  <label class="form-label">Cidade</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="cidade"
+                    placeholder="Digite a cidade"
+                  />
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Estado</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="estado"
+                    placeholder="UF"
+                    maxlength="2"
+                  />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12 mb-3">
+                  <label class="form-label">Observação</label>
+                  <textarea
+                    class="form-control"
+                    formControlName="observacao"
+                    rows="3"
+                    placeholder="Informações adicionais sobre o fornecedor"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab: Dados Ordem de Compra -->
+            <div class="tab-pane fade" id="fn-ordens" role="tabpanel">
+              <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                  <label class="form-label">Buscar Ordem de Compra</label>
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <i class="fas fa-search"></i>
+                    </span>
+                    <input
+                      type="text"
+                      class="form-control"
+                      placeholder="Digite a descrição da ordem..."
+                      [(ngModel)]="filtroOrdem"
+                      [ngModelOptions]="{ standalone: true }"
+                      (input)="aplicarFiltroOrdens()"
+                    />
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Status</label>
+                  <select
+                    class="form-select"
+                    [(ngModel)]="filtroOrdemStatus"
+                    [ngModelOptions]="{ standalone: true }"
+                    (change)="aplicarFiltroOrdens()"
+                  >
+                    <option value="">Todos</option>
+                    <option *ngFor="let s of statusOrdemOptions" [value]="s">
+                      {{ s }}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Período início</label>
+                  <input
+                    type="date"
+                    class="form-control"
+                    [(ngModel)]="filtroOrdemDataInicio"
+                    [ngModelOptions]="{ standalone: true }"
+                    (change)="aplicarFiltroOrdens()"
+                  />
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Período fim</label>
+                  <input
+                    type="date"
+                    class="form-control"
+                    [(ngModel)]="filtroOrdemDataFim"
+                    [ngModelOptions]="{ standalone: true }"
+                    (change)="aplicarFiltroOrdens()"
+                  />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-sm w-100"
+                    (click)="limparFiltroOrdens()"
+                  >
+                    <i class="fas fa-eraser me-1"></i>
+                    Limpar filtro
+                  </button>
+                </div>
+              </div>
+
+              <div
+                class="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-3"
+              >
+                <div class="text-start">
+                  <small class="text-muted d-block"
+                    >Valor total das ordens filtradas</small
+                  >
+                  <strong>{{
+                    formatarMoeda(valorTotalOrdensFiltradas)
+                  }}</strong>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                  <thead>
+                    <tr>
+                      <th>Descrição</th>
+                      <th class="d-none d-md-table-cell text-center">
+                        Nº Itens
+                      </th>
+                      <th class="text-center">Status</th>
+                      <th class="d-none d-md-table-cell text-center">
+                        Valor Total da Ordem
+                      </th>
+                      <th class="d-none d-lg-table-cell text-center">
+                        Criado em
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      *ngFor="
+                        let ordem of ordensCompraFiltradas
+                          | paginate
+                            : {
+                                itemsPerPage: itensPorPaginaOrdens,
+                                currentPage: pageOrdens,
+                                id: 'ordensFornecedor',
+                              }
+                      "
+                    >
+                      <td>
+                        <span [title]="ordem.descricao">
+                          {{ ordem.descricao }}
+                        </span>
+                        <small class="text-muted d-md-none d-block">
+                          {{ ordem.itens.length }} iten(s)
+                        </small>
+                        <small class="text-muted d-md-none d-block">
+                          {{ formatarMoeda(getValorTotalOrdem(ordem)) }}
+                        </small>
+                      </td>
+                      <td class="d-none d-md-table-cell text-center">
+                        {{ ordem.itens.length }}
+                      </td>
+                      <td class="text-center">
+                        <span [class]="getStatusOrdemBadgeClass(ordem.status)">
+                          {{ ordem.status }}
+                        </span>
+                      </td>
+                      <td class="d-none d-md-table-cell text-center">
+                        {{ formatarMoeda(getValorTotalOrdem(ordem)) }}
+                      </td>
+                      <td class="d-none d-lg-table-cell text-center">
+                        {{
+                          ordem.createdAt
+                            ? (ordem.createdAt | date: 'dd/MM/yyyy')
+                            : '—'
+                        }}
+                      </td>
+                    </tr>
+                    <tr *ngIf="ordensCompraFiltradas.length === 0">
+                      <td colspan="5" class="text-center text-muted py-3">
+                        <i class="fas fa-box-open me-2"></i>
+                        {{
+                          ordensCompraDoFornecedor.length === 0
+                            ? 'Nenhuma ordem de compra encontrada para este fornecedor'
+                            : 'Nenhuma ordem encontrada com o filtro aplicado'
+                        }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <pagination-controls
+                  *ngIf="ordensCompraFiltradas.length > itensPorPaginaOrdens"
+                  paginationId="ordensFornecedor"
+                  (pageChange)="pageOrdens = $event"
+                  previousLabel="Anterior"
+                  nextLabel="Próximo"
+                  class="pagination-container"
+                ></pagination-controls>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+            [disabled]="salvando"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary d-flex align-items-center justify-content-center"
+            [disabled]="
+              fornecedorForm.invalid ||
+              salvando ||
+              featureToggleService.isUsuarioVisualizador
+            "
+          >
+            <span *ngIf="salvando" class="loading me-2"></span>
+            <i *ngIf="!salvando" class="fas fa-save me-2"></i>
+            {{ fornecedorEditando ? 'Atualizar' : 'Salvar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+          Confirmar Exclusão
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Tem certeza que deseja excluir o fornecedor
+          <strong>{{ fornecedorParaExcluir?.nome }}</strong
+          >?
+        </p>
+        <div
+          *ngIf="qtdOrdensVinculadasFornecedor > 0"
+          class="alert alert-warning"
+        >
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Atenção:</strong> Este fornecedor possui
+          {{ qtdOrdensVinculadasFornecedor }} ordem(ns) de compra
+          vinculada(s). A exclusão não será permitida.
+        </div>
+        <p class="text-muted" *ngIf="qtdOrdensVinculadasFornecedor === 0">
+          Esta ação não pode ser desfeita.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-bs-dismiss="modal"
+          [disabled]="excluindo"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger d-flex align-items-center justify-content-center"
+          (click)="excluirFornecedor()"
+          title="Excluir Fornecedor"
+          [disabled]="excluindo || qtdOrdensVinculadasFornecedor > 0"
+        >
+          <span *ngIf="excluindo" class="loading me-2"></span>
+          <i *ngIf="!excluindo" class="fas fa-trash me-2"></i>
+          Excluir
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

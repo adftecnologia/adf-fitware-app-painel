@@ -1,0 +1,421 @@
+<div class="produtos-container">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <h4 class="mb-0">
+          <i class="fas fa-box me-2"></i>
+          Gestão de Produtos/Insumos
+        </h4>
+        <small class="text-muted"
+          >{{ totalProdutos }} produto(s) cadastrado(s)</small
+        >
+      </div>
+      <div class="col-md-6 text-end" *ngIf="featureToggleService.canCadastrar">
+        <button
+          class="btn btn-primary"
+          (click)="abrirModal()"
+          data-bs-toggle="modal"
+          data-bs-target="#produtoModal"
+        >
+          <i class="fas fa-plus me-2"></i>
+          Novo Produto
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtro de busca -->
+  <ng-container *ngIf="featureToggleService.canVisualizar">
+    <div class="filters-container">
+      <div class="row">
+        <div class="col-md-6">
+          <label class="form-label">Buscar Produto</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-search"></i>
+            </span>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Digite a descrição do produto..."
+              [(ngModel)]="filtro"
+              (input)="aplicarFiltro()"
+            />
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Filtrar por Categoria</label>
+          <ng-select
+            [items]="categoriaOptions"
+            placeholder="Todas as categorias"
+            notFoundText="Nenhuma categoria encontrada"
+            [(ngModel)]="filtroCategoria"
+            [ngModelOptions]="{ standalone: true }"
+            (change)="aplicarFiltro()"
+            (clear)="aplicarFiltro()"
+          >
+          </ng-select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela de produtos -->
+    <div class="table-container produtos-table-container">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th class="p-2 table-name-column">Descrição</th>
+              <th class="d-none d-md-table-cell p-2 text-center">Categoria</th>
+              <th class="d-none d-md-table-cell p-2 text-center">Valor</th>
+              <th class="p-2 text-center table-actions-column">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="
+                let produto of produtosFiltrados
+                  | paginate
+                    : { itemsPerPage: itensPorPagina, currentPage: page }
+              "
+              class="table-clickable-row"
+              title="Clique para editar"
+            >
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#produtoModal"
+                (click)="editarProduto(produto)"
+                class="p-2"
+              >
+                <div class="d-flex align-items-center ps-2">
+                  <div class="user-avatar me-2 me-md-3">
+                    {{ getInitials(produto.descricao) }}
+                  </div>
+                  <div class="flex-grow-1 table-cell-content">
+                    <strong
+                      class="text-truncate d-block table-name-text"
+                      [title]="produto.descricao"
+                    >
+                      {{ produto.descricao }}
+                    </strong>
+                    <!-- Sub-info mobile -->
+                    <small class="text-muted d-md-none d-block">
+                      {{ produto.categoria || '—' }}
+                    </small>
+                    <small class="text-muted d-md-none d-block">
+                      {{ produto.valor | currency }}
+                    </small>
+                  </div>
+                </div>
+              </td>
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#produtoModal"
+                (click)="editarProduto(produto)"
+                class="d-none d-md-table-cell text-center p-2"
+              >
+                {{ produto.categoria || '—' }}
+              </td>
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#produtoModal"
+                (click)="editarProduto(produto)"
+                class="d-none d-md-table-cell text-center p-2"
+              >
+                {{ produto.valor | currency }}
+              </td>
+              <td class="p-2">
+                <div class="btn-group btn-group-sm d-flex d-md-inline-flex">
+                  <button
+                    class="btn btn-outline-primary"
+                    (click)="editarProduto(produto)"
+                    data-bs-toggle="modal"
+                    data-bs-target="#produtoModal"
+                    [title]="
+                      featureToggleService.canCadastrar
+                        ? 'Editar'
+                        : 'Visualizar'
+                    "
+                  >
+                    <i
+                      class="fas"
+                      [ngClass]="
+                        featureToggleService.canCadastrar ? 'fa-edit' : 'fa-eye'
+                      "
+                    ></i>
+                    <span class="d-none d-sm-inline ms-1">{{
+                      featureToggleService.canCadastrar
+                        ? 'Editar'
+                        : 'Visualizar'
+                    }}</span>
+                  </button>
+                  <button
+                    class="btn btn-outline-danger"
+                    (click)="confirmarExclusao(produto)"
+                    title="Excluir"
+                    *ngIf="featureToggleService.isUsuarioAdmin"
+                  >
+                    <i class="fas fa-trash"></i>
+                    <span class="d-none d-sm-inline ms-1">Excluir</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="produtosFiltrados.length === 0">
+              <td colspan="4" class="text-center text-muted py-4">
+                <div class="d-none d-md-block empty-state-desktop">
+                  <i class="fas fa-inbox fa-2x mb-2"></i>
+                  <br />
+                  {{
+                    filtro
+                      ? 'Nenhum produto encontrado com o filtro aplicado'
+                      : 'Nenhum produto cadastrado ainda'
+                  }}
+                </div>
+                <div class="d-md-none empty-state-mobile">
+                  <i class="fas fa-inbox fa-lg mb-2"></i>
+                  <br />
+                  <small>
+                    {{
+                      filtro
+                        ? 'Nenhum produto encontrado'
+                        : 'Nenhum produto cadastrado'
+                    }}
+                  </small>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <pagination-controls
+          *ngIf="produtosFiltrados.length > itensPorPagina"
+          (pageChange)="page = $event"
+          previousLabel="Anterior"
+          nextLabel="Próximo"
+          class="pagination-container"
+        >
+        </pagination-controls>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- Modal de Cadastro/Edição -->
+<div class="modal fade" id="produtoModal" tabindex="-1">
+  <div
+    class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-produtos-dialog"
+  >
+    <div class="modal-content modal-produtos-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-box me-2"></i>
+          {{ produtoEditando ? 'Editar Produto' : 'Novo Produto' }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+
+      <form [formGroup]="produtoForm" (ngSubmit)="salvarProduto()">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-12 mb-3">
+              <label class="form-label">Descrição *</label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="descricao"
+                placeholder="Digite a descrição do produto"
+                [class.is-invalid]="descricao?.invalid && descricao?.touched"
+              />
+              <div
+                *ngIf="descricao?.invalid && descricao?.touched"
+                class="invalid-feedback"
+              >
+                Descrição do produto é obrigatória
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Categoria *</label>
+              <ng-select
+                [items]="categoriaOptions"
+                placeholder="Pesquisar categoria..."
+                notFoundText="Nenhuma categoria encontrada"
+                formControlName="categoria"
+                [class.is-invalid]="categoria?.invalid && categoria?.touched"
+              >
+              </ng-select>
+              <div
+                *ngIf="categoria?.invalid && categoria?.touched"
+                class="invalid-feedback"
+              >
+                Categoria é obrigatória
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Marca</label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="marca"
+                placeholder="Ex: 3 Corações"
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Valor</label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="valor"
+                placeholder="Ex: 100,00"
+                [class.is-invalid]="valor?.invalid && valor?.touched"
+                mask="separator.2"
+                thousandSeparator="."
+                decimalMarker=","
+                prefix="R$ "
+              />
+              <div
+                *ngIf="valor?.invalid && valor?.touched"
+                class="invalid-feedback"
+              >
+                Valor deve ser maior ou igual a 0
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Gtin</label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="gtin"
+                placeholder="Ex: 7891234567890"
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12 mb-3">
+              <label class="form-label">Observação</label>
+              <textarea
+                class="form-control"
+                formControlName="observacao"
+                rows="3"
+                placeholder="Informações adicionais sobre o produto"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+            [disabled]="salvando"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary d-flex align-items-center justify-content-center"
+            [disabled]="
+              produtoForm.invalid ||
+              salvando ||
+              featureToggleService.isUsuarioVisualizador
+            "
+          >
+            <span *ngIf="salvando" class="loading me-2"></span>
+            <i *ngIf="!salvando" class="fas fa-save me-2"></i>
+            {{ produtoEditando ? 'Atualizar' : 'Salvar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="confirmDeleteModalProduto" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+          Confirmar Exclusão
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Tem certeza que deseja excluir o produto
+          <strong>{{ produtoParaExcluir?.descricao }}</strong
+          >?
+        </p>
+        <div
+          *ngIf="qtdOrdensVinculadasProduto > 0 || qtdEscolasVinculadasProduto > 0"
+          class="alert alert-warning"
+        >
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Atenção:</strong> Este produto está vinculado a
+          <span *ngIf="qtdOrdensVinculadasProduto > 0"
+            >{{ qtdOrdensVinculadasProduto }} ordem(ns) de compra</span
+          >
+          <span
+            *ngIf="
+              qtdOrdensVinculadasProduto > 0 && qtdEscolasVinculadasProduto > 0
+            "
+            > e </span
+          >
+          <span *ngIf="qtdEscolasVinculadasProduto > 0"
+            >{{ qtdEscolasVinculadasProduto }} escola(s) com estoque deste
+            produto</span
+          >. A exclusão não será permitida.
+        </div>
+        <p
+          class="text-danger mb-0"
+          style="font-size: 0.875rem"
+          *ngIf="
+            qtdOrdensVinculadasProduto === 0 && qtdEscolasVinculadasProduto === 0
+          "
+        >
+          <i class="fas fa-exclamation-circle me-1"></i>
+          Esta ação não pode ser desfeita.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-bs-dismiss="modal"
+          [disabled]="excluindo"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger d-flex align-items-center justify-content-center"
+          (click)="excluirProduto()"
+          title="Excluir Produto"
+          [disabled]="
+            excluindo ||
+            qtdOrdensVinculadasProduto > 0 ||
+            qtdEscolasVinculadasProduto > 0
+          "
+        >
+          <span *ngIf="excluindo" class="loading me-2"></span>
+          <i *ngIf="!excluindo" class="fas fa-trash me-2"></i>
+          Excluir
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

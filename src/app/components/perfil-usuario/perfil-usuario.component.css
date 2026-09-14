@@ -1,0 +1,281 @@
+/* Header da página - seguindo o padrão do componente secretarias */
+.perfil-container {
+  padding: 1rem;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header h4 {
+  color: var(--dark-color, #1f2937);
+  font-weight: 700;
+}
+
+.perfil-usuario-modal .modal-body {
+  padding: 1.5rem;
+}
+
+/* Container principal - usando table-container como os outros componentes */
+.table-container {
+  background: white;
+  border-radius: var(--border-radius, 12px);
+  box-shadow: var(--box-shadow, 0 10px 25px rgba(0, 0, 0, 0.1));
+  overflow: hidden;
+}
+
+/* Seção da foto do perfil */
+.profile-photo-section {
+  width: 100%;
+  max-width: 200px;
+}
+
+.photo-preview-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.photo-preview {
+  position: relative !important;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  overflow: visible; /* Mudado de hidden para visible para o botão aparecer */
+  border: 4px solid var(--primary-color, #4f46e5);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.2);
+  transition: var(--transition, all 0.3s ease);
+  background: white;
+}
+
+.photo-preview:hover {
+  transform: scale(1.02);
+  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.3);
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%; /* Garante que a imagem mantenha o formato circular */
+}
+
+.remove-photo {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 2px solid white !important;
+  z-index: 10;
+  background-color: #dc3545 !important;
+  color: white !important;
+  opacity: 0.9;
+  transition: all 0.2s ease;
+}
+
+.remove-photo:hover {
+  opacity: 1;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.no-photo-placeholder {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 3px dashed #dee2e6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  transition: var(--transition, all 0.3s ease);
+  color: #6c757d;
+}
+
+.no-photo-placeholder:hover {
+  border-color: var(--primary-color, #4f46e5);
+  background-color: rgba(79, 70, 229, 0.05);
+}
+
+/* Seção de upload */
+.upload-section {
+  width: 100%;
+}
+
+/* Campo de email desabilitado */
+.form-control:disabled {
+  background-color: #f8f9fa;
+  border-color: #e9ecef;
+  color: #6c757d;
+  opacity: 0.8;
+}
+
+.form-control:disabled::placeholder {
+  color: #adb5bd;
+}
+
+.photo-preview-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.no-photo-placeholder:hover {
+  border-color: var(--primary-color, #4f46e5);
+  background-color: rgba(79, 70, 229, 0.05);
+}
+
+.form-control:focus {
+  border-color: var(--primary-color, #4f46e5);
+  box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+}
+
+.form-control-lg {
+  font-size: 1.1rem;
+  padding: 0.75rem 1rem;
+}
+
+.btn {
+  border-radius: var(--border-radius, 12px);
+  font-weight: 600;
+  transition: var(--transition, all 0.3s ease);
+}
+
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--primary-color, #4f46e5) 0%,
+    var(--secondary-color, #6366f1) 100%
+  );
+  border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    var(--primary-dark, #3730a3) 0%,
+    var(--primary-color, #4f46e5) 100%
+  );
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-outline-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.badge {
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+}
+
+.form-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.input-group .btn {
+  border-color: #dee2e6;
+}
+
+.list-unstyled li {
+  display: flex;
+  align-items: center;
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .profile-photo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .photo-preview,
+  .no-photo-placeholder {
+    width: 120px;
+    height: 120px;
+  }
+
+  .upload-section {
+    max-width: 200px;
+  }
+
+  .d-flex.gap-2 {
+    flex-direction: column;
+  }
+
+  .d-flex.gap-2 .btn {
+    width: 100%;
+  }
+}
+
+/* Estados de hover e foco para melhor UX */
+.form-control:hover {
+  border-color: #c7d2fe;
+}
+
+.btn:focus {
+  box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+}
+
+/* Estilo para input file customizado */
+.form-control[type='file'] {
+  padding: 0.5rem;
+}
+
+.form-control[type='file']::-webkit-file-upload-button {
+  background: linear-gradient(
+    135deg,
+    var(--primary-color, #4f46e5) 0%,
+    var(--secondary-color, #6366f1) 100%
+  );
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  margin-right: 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition, all 0.3s ease);
+}
+
+.form-control[type='file']::-webkit-file-upload-button:hover {
+  background: linear-gradient(
+    135deg,
+    var(--primary-dark, #3730a3) 0%,
+    var(--primary-color, #4f46e5) 100%
+  );
+}

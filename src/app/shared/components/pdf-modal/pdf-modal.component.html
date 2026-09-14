@@ -1,0 +1,94 @@
+<div
+  class="pdf-modal-backdrop"
+  *ngIf="isVisible"
+  (click)="onBackdropClick($event)"
+  (keydown)="onKeydown($event)"
+  tabindex="-1"
+>
+  <div class="pdf-modal-container">
+    <!-- Header do Modal -->
+    <div class="pdf-modal-header">
+      <h4 class="modal-title">
+        <i class="fas fa-file-pdf text-danger"></i>
+        Visualizar {{ dataReport.title }}
+      </h4>
+
+      <div class="modal-actions">
+        <button
+          type="button"
+          class="btn btn-secondary me-2"
+          (click)="onDownload()"
+          [disabled]="isLoading"
+          title="Baixar PDF"
+        >
+          <i class="fas fa-download"></i>
+          Baixar
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-success me-2"
+          (click)="onPrint()"
+          [disabled]="isLoading"
+          title="Imprimir PDF"
+        >
+          <i class="fas fa-print"></i>
+          Imprimir
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-danger"
+          (click)="closeModal()"
+          title="Fechar"
+        >
+          <i class="fas fa-times"></i>
+          Fechar
+        </button>
+      </div>
+    </div>
+
+    <!-- Conteúdo do Modal -->
+    <div class="pdf-modal-body">
+      <!-- Loading Spinner -->
+      <div *ngIf="isLoading" class="pdf-loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Carregando PDF...</span>
+        </div>
+        <p class="mt-2 text-muted">Gerando relatório...</p>
+      </div>
+
+      <!-- PDF Viewer -->
+      <div *ngIf="!isLoading && pdfUrl" class="pdf-viewer">
+        <iframe
+          #pdfIframe
+          [src]="pdfUrl"
+          class="pdf-iframe"
+          frameborder="0"
+          type="application/pdf"
+        >
+          <p>
+            Seu navegador não suporta visualização de PDF inline.
+            <a [href]="pdfUrl" target="_blank">Clique aqui para baixar o PDF</a>
+          </p>
+        </iframe>
+      </div>
+
+      <!-- Erro -->
+      <div *ngIf="!isLoading && !pdfUrl" class="pdf-error">
+        <div class="alert alert-warning" role="alert">
+          <i class="fas fa-exclamation-triangle"></i>
+          Erro ao carregar o PDF. Tente novamente.
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer do Modal -->
+    <!-- <div class="pdf-modal-footer">
+      <small class="text-muted">
+        <i class="fas fa-info-circle"></i>
+        Após imprimir, este modal será fechado automaticamente.
+      </small>
+    </div> -->
+  </div>
+</div>

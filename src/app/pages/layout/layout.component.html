@@ -1,0 +1,108 @@
+<div class="main-layout">
+  <!-- Sidebar -->
+  <ng-container
+    *ngIf="{
+      isMobile: mobileService.isMobile$ | async,
+      sidebarVisible: mobileService.sidebarVisible$ | async,
+    } as ui"
+  >
+    <nav
+      class="sidebar"
+      [class.collapsed]="sidebarCollapsed && !ui.isMobile"
+      [class.mobile-show]="ui.sidebarVisible && ui.isMobile"
+      [class.mobile-hide]="!ui.sidebarVisible && ui.isMobile"
+    >
+      <div class="sidebar-header d-flex justify-content-center" [style.minHeight]="sidebarCollapsed ? '100px' : 'auto'">
+        <a
+          href="#"
+          class="sidebar-brand d-flex align-items-center justify-content-center"
+          [routerLink]="routes[0].path"
+          *ngIf="!sidebarCollapsed"
+        >
+          <img
+            src="/logo.png"
+            alt="Logo SGCA"
+            class="me-2"
+            style="height: 100px; width: auto; object-fit: contain;"
+          />
+        </a>
+      </div>
+
+      <ul class="sidebar-nav" style="overflow-y: auto;">
+        <li class="nav-item" *ngFor="let route of routes">
+          <a
+            class="nav-link"
+            [routerLink]="route.path"
+            routerLinkActive="active"
+            (click)="ui.isMobile ? mobileService.toggleSidebar() : null"
+          >
+            <i [ngClass]="'fas ' + route.icon"></i>
+            <span *ngIf="!sidebarCollapsed">{{ route.title }}</span>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link text-danger" href="#" (click)="logout($event)">
+            <i class="fas fa-sign-out-alt"></i>
+            <span *ngIf="!sidebarCollapsed">Sair</span>
+          </a>
+        </li>
+      </ul>
+      <!-- <app-footer
+        [collapsed]="sidebarCollapsed"
+        [isMobile]="ui.isMobile"
+        [sidebarVisible]="ui.sidebarVisible"
+      ></app-footer> -->
+    </nav>
+
+    <!-- Overlay para mobile -->
+    <div
+      class="sidebar-overlay"
+      *ngIf="ui.isMobile && ui.sidebarVisible"
+      (click)="toggleSidebar()"
+    ></div>
+
+    <!-- Conteúdo principal -->
+    <main
+      class="main-content"
+      [class.expanded]="sidebarCollapsed && !ui.isMobile"
+      [class.mobile-full]="ui.isMobile"
+    >
+      <!-- Header -->
+      <header
+        class="main-header d-flex justify-content-between align-items-center"
+      >
+        <div class="d-flex align-items-center">
+          <button
+            class="btn btn-link text-dark me-3"
+            (click)="toggleSidebar()"
+            title="Toggle Sidebar"
+          >
+            <i class="fas fa-bars"></i>
+          </button>
+        </div>
+
+        <div class="user-menu">
+          <span class="d-none d-md-inline"
+            >Bem-vindo,
+            <strong>{{
+              currentUser?.displayName ||
+                showFormattedEmail(currentUser?.email || '')
+            }}</strong></span
+          >
+          <div class="user-avatar">
+            {{ getUserInitials() }}
+          </div>
+        </div>
+      </header>
+
+      <!-- Conteúdo da página -->
+      <div class="p-4">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+
+    <!-- Container de Alertas -->
+    <app-alert-container></app-alert-container>
+  </ng-container>
+</div>

@@ -1,0 +1,32 @@
+<div class="btn-group actions-dropdown">
+  <button
+    #dropdownToggle
+    type="button"
+    class="btn btn-secondary btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-expanded="false"
+    [title]="title"
+    (click)="$event.stopPropagation()"
+  >
+    <i class="fas fa-ellipsis-v"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li *ngFor="let action of visibleActions">
+      <button
+        type="button"
+        class="dropdown-item"
+        [class.disabled]="action.disabled"
+        [disabled]="action.disabled"
+        [attr.data-bs-toggle]="action.dataBsToggle || null"
+        [attr.data-bs-target]="action.dataBsTarget || null"
+        (click)="onActionClick(action)"
+      >
+        <i
+          class="fas me-2"
+          [ngClass]="[action.icon, action.textClass || '']"
+        ></i>
+        {{ action.label }}
+      </button>
+    </li>
+  </ul>
+</div>

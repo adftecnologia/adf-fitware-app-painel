@@ -1,0 +1,12 @@
+.actions-dropdown .dropdown-toggle::after {
+  display: none;
+}
+
+.actions-dropdown .dropdown-menu {
+  min-width: 180px;
+}
+
+.actions-dropdown .dropdown-item i {
+  width: 1rem;
+  text-align: center;
+}

@@ -1,0 +1,16 @@
+<div class="alert-container-wrapper" *ngIf="alerts.length > 0">
+  <div class="alerts-stack">
+    <app-alert
+      *ngFor="let alert of alerts; trackBy: trackByAlertId"
+      [type]="alert.type"
+      [title]="alert.title || ''"
+      [message]="alert.message"
+      [dismissible]="alert.dismissible ?? true"
+      [show]="alert.show"
+      [autoClose]="alert.autoClose ?? false"
+      [autoCloseTime]="alert.autoCloseTime ?? 3000"
+      (onClose)="onAlertClose(alert.id)"
+    >
+    </app-alert>
+  </div>
+</div>

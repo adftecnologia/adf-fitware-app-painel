@@ -1,0 +1,21 @@
+name: 'CI de Feature/Fix Branch'
+description: 'Create a Pull Request automatically from feature/fix branches to develop'
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+      - 'fix/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  create-pull-request:
+    name: '📜 Create Pull Request to develop'
+    uses: ./.github/workflows/01-create-pr.yaml
+    with:
+      base-branch: 'develop'
+      pr-title-prefix: '🚀 PR automático de'

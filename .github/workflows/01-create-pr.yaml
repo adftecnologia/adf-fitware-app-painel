@@ -1,0 +1,83 @@
+name: 'Create Pull Request'
+description: 'Create a Pull Request automatically from feature/fix branches to a specified base branch'
+
+on:
+  workflow_call:
+    inputs:
+      base-branch:
+        description: 'Base branch for the pull request'
+        required: false
+        default: 'develop'
+        type: string
+      pr-title-prefix:
+        description: 'Prefix for PR title'
+        required: false
+        default: 'PR automático de'
+        type: string
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verificar e criar branch (se não existir)
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          # Verificar se a branch develop existe remotamente
+          if git ls-remote --exit-code --heads origin ${{ inputs.base-branch }}; then
+            echo "Branch ${{ inputs.base-branch }} já existe."
+          else
+            echo "Branch ${{ inputs.base-branch }} não encontrada. Tentando criar a partir de main ou master..."
+            
+            # Determinar qual branch base usar
+            if git ls-remote --exit-code --heads origin main; then
+              BASE_BRANCH="main"
+            elif git ls-remote --exit-code --heads origin master; then
+              BASE_BRANCH="master"
+            else
+              echo "Erro: Nenhuma branch principal (main ou master) encontrada para criar a ${{ inputs.base-branch }}."
+              exit 1
+            fi
+            
+            # Fazer checkout da branch base
+            git fetch origin $BASE_BRANCH
+            git checkout -b ${{ inputs.base-branch }} origin/$BASE_BRANCH
+            git push origin ${{ inputs.base-branch }}
+            
+            echo "Branch ${{ inputs.base-branch }} criada a partir de $BASE_BRANCH"
+          fi
+
+      - name: Criar ou Atualizar Pull Request
+        run: |
+          # Verificar se já existe um PR aberto para esta branch
+          EXISTING_PR=$(gh pr list --head "${{ github.ref_name }}" --base ${{ inputs.base-branch }} --json number --jq '.[0].number')
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "✅ PR #$EXISTING_PR já existe. Atualizando..."
+            gh pr edit $EXISTING_PR \
+              --title "${{ inputs.pr-title-prefix }} ${{ github.ref_name }} para ${{ inputs.base-branch }}" \
+              --body "Este PR foi atualizado automaticamente pelo workflow de CI/CD. Ele contém as mudanças da branch \`${{ github.ref_name }}\`."
+            echo "PR #$EXISTING_PR atualizado com sucesso!"
+          else
+            echo "Criando novo PR..."
+            if ! gh pr create \
+              --base ${{ inputs.base-branch }} \
+              --head "${{ github.ref_name }}" \
+              --title "${{ inputs.pr-title-prefix }} ${{ github.ref_name }} para ${{ inputs.base-branch }}" \
+              --body "Este PR foi criado automaticamente pelo workflow de CI/CD. Ele contém as mudanças da branch \`${{ github.ref_name }}\`."; then
+              echo "❌ Erro ao criar PR"
+              echo "⚠️ Lembre-se de ativar a aprovação automática de PRs nas configurações do repositório:"
+              echo "Repo > Settings > Actions > General > Workflow permissions > Allow GitHub Actions to create and approve pull requests"
+              exit 1
+            fi
+            echo "✅ Novo PR criado com sucesso!"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

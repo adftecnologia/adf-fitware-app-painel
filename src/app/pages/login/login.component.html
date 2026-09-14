@@ -1,0 +1,153 @@
+<div class="login-page d-flex">
+  <!-- Lado esquerdo - Informações do sistema (oculto em dispositivos móveis) -->
+  <div
+    class="col-md-6 d-none d-md-flex bg-primary-gradient align-items-center justify-content-center text-white"
+  >
+    <div class="text-center mx-4">
+      <div class="mb-4">
+        <img
+          src="/logo.png"
+          alt="Logo SGCA"
+          style="max-width: 180px; width: 100%; height: auto; object-fit: contain;"
+          class="mb-3"
+        />
+        <h1 class="display-4 fw-bold">
+          Sistema de Gerenciamento de Controle Escolas
+        </h1>
+        <!-- <p class="lead">Gerencie e controle a de forma eficiente</p> -->
+      </div>
+
+      <div class="features-list text-start">
+        <!-- <div class="feature-item">
+          <i class="fas fa-chart-bar me-3"></i>
+          Dashboard com gráficos interativos
+        </div> -->
+        <!-- <div class="feature-item">
+          <i class="fas fa-user-plus me-3"></i>
+          Cadastro completo de pessoas
+        </div> -->
+        <!-- <div class="feature-item">
+          <i class="fas fa-filter me-3"></i>
+          Filtros avançados
+        </div> -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Lado direito - Formulário de login (ocupa toda tela em mobile) -->
+  <div
+    class="col-12 col-md-6 d-flex align-items-center justify-content-center min-vh-100 px-3"
+  >
+    <div class="login-container w-100 px-3 px-md-0">
+      <div class="card">
+        <div class="card-body p-4 p-md-5">
+          <div class="text-center mb-4">
+            <div class="user-avatar mx-auto mb-3">
+              <i class="fas fa-user"></i>
+            </div>
+            <h3 class="card-title">Bem-vindo!</h3>
+            <p class="text-muted">Faça login para acessar o sistema</p>
+          </div>
+
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="fas fa-envelope"></i>
+                </span>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email"
+                  formControlName="email"
+                  placeholder="Digite seu email"
+                  [class.is-invalid]="email?.invalid && email?.touched"
+                />
+              </div>
+              <div
+                *ngIf="email?.invalid && email?.touched"
+                class="invalid-feedback"
+              >
+                <div *ngIf="email?.errors?.['required']">
+                  Email é obrigatório
+                </div>
+                <div *ngIf="email?.errors?.['email']">Email inválido</div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="password" class="form-label">Senha</label>
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="fas fa-lock"></i>
+                </span>
+                <input
+                  [type]="showPassword ? 'text' : 'password'"
+                  class="form-control"
+                  id="password"
+                  formControlName="password"
+                  placeholder="Digite sua senha"
+                  [class.is-invalid]="password?.invalid && password?.touched"
+                />
+                <button
+                  style="background-color: #6f7880; color: white"
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  (click)="togglePassword()"
+                >
+                  <i
+                    [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"
+                  ></i>
+                </button>
+              </div>
+              <div
+                *ngIf="password?.invalid && password?.touched"
+                class="invalid-feedback"
+              >
+                <div *ngIf="password?.errors?.['required']">
+                  Senha é obrigatória
+                </div>
+                <div *ngIf="password?.errors?.['minlength']">
+                  Senha deve ter pelo menos 6 caracteres
+                </div>
+              </div>
+            </div>
+
+            <!-- <div class="mb-3 form-check">
+              <input 
+                type="checkbox" 
+                class="form-check-input" 
+                id="rememberMe"
+                formControlName="rememberMe">
+              <label class="form-check-label" for="rememberMe">
+                Lembrar de mim
+              </label>
+            </div> -->
+
+            <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
+              {{ errorMessage }}
+            </div>
+
+            <button
+              type="submit"
+              class="btn btn-primary w-100 mb-3 d-flex align-items-center justify-content-center"
+              [disabled]="loginForm.invalid || isLoading"
+            >
+              <span *ngIf="isLoading" class="loading me-2"></span>
+              <i *ngIf="!isLoading" class="fas fa-sign-in-alt me-2"></i>
+              Entrar
+            </button>
+          </form>
+
+          <!-- <div class="text-center">
+            <small class="text-muted">
+              Esqueceu sua senha? 
+              <a href="#" class="text-primary">Clique aqui</a>
+            </small>
+          </div> -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,485 @@
+<div class="notas-fiscais-container">
+  <div class="page-header mb-4">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <h4 class="mb-0">
+          <i class="fas fa-file-invoice-dollar me-2"></i>
+          Gestão de Notas Fiscais
+        </h4>
+        <small class="text-muted">{{ totalNotas }} nota(s) cadastrada(s)</small>
+      </div>
+      <div class="col-md-6 text-end" *ngIf="featureToggleService.canCadastrar">
+        <button
+          class="btn btn-primary"
+          (click)="abrirModal()"
+          data-bs-toggle="modal"
+          data-bs-target="#notaFiscalModal"
+        >
+          <i class="fas fa-plus me-2"></i>
+          Nova Nota Fiscal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="featureToggleService.canVisualizar">
+    <div class="filters-container mb-4">
+      <div class="row gy-3">
+        <div class="col-md-4">
+          <label class="form-label">Buscar</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-search"></i>
+            </span>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Número, fornecedor ou chave"
+              [(ngModel)]="filtro"
+              (input)="aplicarFiltro()"
+            />
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Status</label>
+          <select
+            class="form-select"
+            [(ngModel)]="filtroStatus"
+            (change)="aplicarFiltro()"
+          >
+            <option value="">Todos</option>
+            <option *ngFor="let status of statusOptions" [value]="status">
+              {{ status }}
+            </option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Tipo</label>
+          <select
+            class="form-select"
+            [(ngModel)]="filtroTipo"
+            (change)="aplicarFiltro()"
+          >
+            <option value="">Todos</option>
+            <option *ngFor="let tipo of tipoOptions" [value]="tipo">
+              {{ tipo }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container notas-table-container">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th class="p-2 table-name-column">Número</th>
+              <th class="d-none d-md-table-cell p-2 text-center">Fornecedor</th>
+              <th class="d-none d-md-table-cell p-2 text-center">Valor</th>
+              <th class="d-none d-md-table-cell p-2 text-center">Status</th>
+              <th class="p-2 text-center table-actions-column">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="
+                let nota of notasFiscaisFiltradas
+                  | paginate
+                    : { itemsPerPage: itensPorPagina, currentPage: page }
+              "
+              class="table-clickable-row"
+              title="Clique para editar"
+            >
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#notaFiscalModal"
+                (click)="editarNotaFiscal(nota)"
+                class="p-2"
+              >
+                <div class="d-flex align-items-center ps-2">
+                  <div class="user-avatar me-2 me-md-3">
+                    {{ getInitials(nota.numero) }}
+                  </div>
+                  <div class="flex-grow-1">
+                    <strong class="d-block">{{ nota.numero }}</strong>
+                    <small class="text-muted"
+                      >{{ nota.serie }} • {{ nota.dataEmissao }}</small
+                    >
+                    <small class="text-muted d-block" *ngIf="nota.descricao">
+                      {{ nota.descricao }}
+                    </small>
+                  </div>
+                </div>
+              </td>
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#notaFiscalModal"
+                (click)="editarNotaFiscal(nota)"
+                class="d-none d-md-table-cell text-center p-2"
+              >
+                {{ getFornecedorNome(nota.fornecedor) }}
+              </td>
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#notaFiscalModal"
+                (click)="editarNotaFiscal(nota)"
+                class="d-none d-md-table-cell text-center p-2"
+              >
+                {{ nota.valor | currency }}
+              </td>
+              <td
+                data-bs-toggle="modal"
+                data-bs-target="#notaFiscalModal"
+                (click)="editarNotaFiscal(nota)"
+                class="d-none d-md-table-cell text-center p-2"
+              >
+                <span class="badge bg-info text-dark">{{ nota.status }}</span>
+              </td>
+              <td class="p-2">
+                <div class="btn-group btn-group-sm d-flex d-md-inline-flex">
+                  <button
+                    class="btn btn-outline-primary"
+                    (click)="editarNotaFiscal(nota)"
+                    data-bs-toggle="modal"
+                    data-bs-target="#notaFiscalModal"
+                    title="Editar"
+                  >
+                    <i class="fas fa-edit"></i>
+                    <span class="d-none d-sm-inline ms-1">Editar</span>
+                  </button>
+                  <button
+                    class="btn btn-outline-danger"
+                    (click)="confirmarExclusao(nota)"
+                    title="Excluir"
+                    *ngIf="featureToggleService.isUsuarioAdmin"
+                  >
+                    <i class="fas fa-trash"></i>
+                    <span class="d-none d-sm-inline ms-1">Excluir</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="notasFiscaisFiltradas.length === 0">
+              <td colspan="5" class="text-center text-muted py-4">
+                Nenhuma nota fiscal cadastrada ainda
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <pagination-controls
+          *ngIf="notasFiscaisFiltradas.length > itensPorPagina"
+          paginationId="notas-fiscais"
+          (pageChange)="page = $event"
+          previousLabel="Anterior"
+          nextLabel="Próximo"
+          class="pagination-container"
+        ></pagination-controls>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<div class="modal fade" id="notaFiscalModal" tabindex="-1">
+  <div
+    class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-notas-dialog"
+  >
+    <div class="modal-content modal-notas-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-file-invoice-dollar me-2"></i>
+          {{ notaFiscalEditando ? 'Editar Nota Fiscal' : 'Nova Nota Fiscal' }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+
+      <form [formGroup]="notaFiscalForm" (ngSubmit)="salvarNotaFiscal()">
+        <div class="modal-body">
+          <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link buttom-tab"
+                [class.active]="activeTab === 'dados'"
+                type="button"
+                (click)="activeTab = 'dados'"
+              >
+                Principal
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link buttom-tab"
+                [class.active]="activeTab === 'anexo'"
+                type="button"
+                (click)="activeTab = 'anexo'"
+              >
+                Anexo PDF
+              </button>
+            </li>
+          </ul>
+
+          <div *ngIf="activeTab === 'dados'" class="tab-pane-active">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Número *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="numero"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Série *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="serie"
+                />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Chave de acesso *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="chaveAcesso"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Tipo</label>
+                <select class="form-select" formControlName="tipo">
+                  <option *ngFor="let tipo of tipoOptions" [value]="tipo">
+                    {{ tipo }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label class="form-label">Descrição</label>
+                <textarea
+                  class="form-control"
+                  rows="3"
+                  formControlName="descricao"
+                  placeholder="Descreva a nota fiscal"
+                ></textarea>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Data de emissão *</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  formControlName="dataEmissao"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Data de vencimento</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  formControlName="dataVencimento"
+                />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Fornecedor *</label>
+                <ng-select
+                  [items]="fornecedores"
+                  bindLabel="nome"
+                  bindValue="id"
+                  placeholder="Pesquisar fornecedor..."
+                  notFoundText="Nenhum fornecedor encontrado"
+                  formControlName="fornecedor"
+                >
+                </ng-select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Valor *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="valor"
+                  placeholder="Ex: 100,00"
+                  [class.is-invalid]="valor?.invalid && valor?.touched"
+                  mask="separator.2"
+                  thousandSeparator="."
+                  decimalMarker=","
+                  prefix="R$ "
+                  [allowNegativeNumbers]="false"
+                />
+                <div
+                  *ngIf="valor?.invalid && valor?.touched"
+                  class="invalid-feedback"
+                >
+                  Valor deve ser maior ou igual a 0
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" formControlName="status">
+                  <option *ngFor="let status of statusOptions" [value]="status">
+                    {{ status }}
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Observação</label>
+                <textarea
+                  class="form-control"
+                  rows="4"
+                  formControlName="observacao"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="activeTab === 'anexo'" class="tab-pane-active">
+            <div *ngIf="anexoPdfUrlAtual" class="alert alert-success">
+              <div
+                class="d-flex justify-content-between align-items-center gap-2 flex-wrap"
+              >
+                <span>
+                  <i class="fas fa-file-pdf me-2"></i>
+                  Anexo disponível para download.
+                </span>
+                <div class="btn-group btn-group-sm">
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary"
+                    (click)="baixarAnexo()"
+                  >
+                    <i class="fas fa-download me-1"></i>
+                    Baixar
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger"
+                    (click)="removerAnexo()"
+                  >
+                    <i class="fas fa-trash me-1"></i>
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="!anexoPdfUrlAtual" class="mb-3">
+              <label class="form-label">Anexar PDF da nota</label>
+              <div
+                class="input-group"
+                style="
+                  border: 1px solid #dee2e6;
+                  border-radius: 0.375rem;
+                  overflow: hidden;
+                "
+              >
+                <input
+                  type="file"
+                  class="d-none"
+                  accept="application/pdf"
+                  (change)="onFileSelected($event)"
+                  #fileInput
+                />
+                <input
+                  type="text"
+                  class="form-control border-0"
+                  [value]="
+                    arquivoSelecionadoName || 'Nenhum arquivo adicionado'
+                  "
+                  readonly
+                  style="box-shadow: none"
+                />
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="fileInput.click()"
+                  style="border-radius: 0; border-left: 1px solid #0b5ed7"
+                >
+                  <i class="fas fa-folder-open me-1"></i>
+                  Escolher arquivo
+                </button>
+              </div>
+            </div>
+            <div
+              class="alert alert-secondary"
+              *ngIf="arquivoSelecionadoBase64 && !anexoPdfUrlAtual"
+            >
+              O PDF será enviado ao salvar a nota e o link ficará armazenado no
+              registro.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+          >
+            Fechar
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="salvando">
+            <span
+              *ngIf="salvando"
+              class="spinner-border spinner-border-sm me-2"
+            ></span>
+            Salvar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deleteNotaFiscalModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Excluir nota fiscal</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Deseja realmente excluir a nota fiscal
+          <strong>{{ notaFiscalParaExcluir?.numero }}</strong
+          >?
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          data-bs-dismiss="modal"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger"
+          (click)="excluirNotaFiscal()"
+          [disabled]="excluindo"
+        >
+          <span
+            *ngIf="excluindo"
+            class="spinner-border spinner-border-sm me-2"
+          ></span>
+          Excluir
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,10 @@
+<footer
+  class="sidebar-footer"
+  [class.collapsed]="collapsed"
+  [class.mobile-show]="sidebarVisible && isMobile"
+  [class.mobile-hide]="!sidebarVisible && isMobile"
+>
+  <div class="tabulare-credits">
+    <span *ngIf="!collapsed">Versão: v{{ version }}</span>
+  </div>
+</footer>

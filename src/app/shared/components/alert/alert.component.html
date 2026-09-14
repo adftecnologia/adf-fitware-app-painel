@@ -1,0 +1,36 @@
+<div class="alert-container" *ngIf="show">
+  <div class="alert alert-dismissible" [ngClass]="getAlertClass()" role="alert">
+    <!-- Ícone e Título -->
+    <div class="d-flex align-items-start">
+      <i [class]="getIconClass()" class="alert-icon me-2"></i>
+      <div class="flex-grow-1">
+        <!-- Título -->
+        <h6 class="alert-title mb-1" *ngIf="title">
+          {{ title }}
+        </h6>
+
+        <!-- Mensagem -->
+        <div class="alert-message" *ngIf="message">
+          {{ message }}
+        </div>
+      </div>
+
+      <!-- Botão de Fechar -->
+      <button
+        *ngIf="dismissible"
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="close()"
+      ></button>
+    </div>
+
+    <!-- Barra de progresso para auto close -->
+    <div *ngIf="autoClose && show" class="alert-progress">
+      <div
+        class="alert-progress-bar"
+        [style.animation-duration.ms]="autoCloseTime"
+      ></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,385 @@
+<div class="perfil-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <h4 class="mb-0">
+          <i class="fas fa-user-edit me-2"></i>
+          Perfil do Usuário
+        </h4>
+        <small class="text-muted">Gerencie suas informações pessoais</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulário de Perfil -->
+  <div class="table-container">
+    <div class="card-body p-4">
+      <form (ngSubmit)="salvarPerfil()" #perfilForm="ngForm">
+        <div class="row">
+          <!-- Coluna da foto - lado esquerdo -->
+          <!-- <div class="col-md-3 d-flex flex-column align-items-center mb-4">
+            <div class="profile-photo-section">
+              <div class="photo-preview-container mb-3">
+                <div class="photo-preview" *ngIf="!!previewUrl; else noPhoto">
+                  <img [src]="previewUrl" alt="Foto do perfil" class="img-fluid">
+                  <button 
+                    type="button" 
+                    class="remove-photo"
+                    (click)="removerFoto()"
+                    title="Remover foto"
+                    aria-label="Remover foto">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                
+                <ng-template #noPhoto>
+                  <div class="no-photo-placeholder">
+                    <i class="fas fa-user fa-3x text-muted"></i>
+                  </div>
+                </ng-template>
+              </div>
+
+              < !-- Upload de arquivo -- >
+              <div class="upload-section">
+                <label for="fileInput" class="btn btn-outline-primary btn-sm w-100">
+                  <i class="fas fa-camera me-2"></i>
+                  Alterar Foto
+                </label>
+                <input 
+                  type="file" 
+                  class="d-none" 
+                  id="fileInput"
+                  accept="image/*"
+                  (change)="onFileSelected($event)">
+                <div class="form-text text-center mt-2">
+                  <small class="text-muted">
+                    JPG, PNG, GIF
+                    <p>Máx. 5MB</p>
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div> -->
+
+          <!-- Coluna dos dados - lado direito -->
+          <div class="col-md-12">
+            <!-- Campo Email -->
+            <div class="mb-3">
+              <label for="email" class="form-label">
+                <i class="fas fa-envelope me-2"></i>
+                E-mail
+              </label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                [(ngModel)]="email"
+                placeholder="Carregando email do usuário..."
+                readonly
+                disabled
+              />
+              <div class="form-text">
+                <small class="text-muted">
+                  <i class="fas fa-info-circle me-1"></i>
+                  E-mail vinculado à sua conta
+                </small>
+              </div>
+            </div>
+
+            <!-- Campos Status e Perfil na mesma linha -->
+            <div class="row mb-3">
+              <!-- Campo Status -->
+              <div class="col-md-6">
+                <label for="status" class="form-label">
+                  <i class="fas fa-circle-check me-2"></i>
+                  Status
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="status"
+                  name="status"
+                  [(ngModel)]="status"
+                  placeholder="Carregando status..."
+                  readonly
+                  disabled
+                />
+                <div class="form-text">
+                  <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Status atual da conta
+                  </small>
+                </div>
+              </div>
+
+              <!-- Campo Perfil -->
+              <div class="col-md-6">
+                <label for="perfil" class="form-label">
+                  <i class="fas fa-user-tag me-2"></i>
+                  Perfil de Acesso
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="perfil"
+                  name="perfil"
+                  [(ngModel)]="perfil"
+                  placeholder="Carregando perfil..."
+                  readonly
+                  disabled
+                />
+                <div class="form-text">
+                  <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Nível de acesso no sistema
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Campo Nome -->
+            <div class="mb-3">
+              <label for="nome" class="form-label">
+                <i class="fas fa-user me-2"></i>
+                Nome *
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="nome"
+                name="nome"
+                [(ngModel)]="nome"
+                placeholder="Digite seu nome"
+                required
+              />
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="d-flex gap-2 justify-content-end mt-4">
+              <button
+                type="button"
+                class="btn btn-secondary me-2 mb-3 d-flex align-items-center justify-content-center"
+                data-bs-toggle="modal"
+                data-bs-target="#alterarSenhaModal"
+                [disabled]="isLoading"
+              >
+                <i class="fas fa-key me-2"></i>
+                Alterar Senha
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary mb-3 d-flex align-items-center justify-content-center"
+                [disabled]="!perfilForm.form.valid || isLoading"
+              >
+                <span *ngIf="isLoading" class="loading me-2"></span>
+                <i *ngIf="!isLoading" class="fas fa-save me-2"></i>
+                Salvar Perfil
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Alterar Senha -->
+<div
+  class="modal fade perfil-usuario-modal"
+  id="alterarSenhaModal"
+  tabindex="-1"
+  (hidden.bs.modal)="resetarFormularioSenha()"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-key me-2"></i>
+          Alterar Senha
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          (click)="resetarFormularioSenha()"
+        ></button>
+      </div>
+
+      <form #senhaForm="ngForm" (ngSubmit)="alterarSenha()">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="senhaAtual" class="form-label">
+              <i class="fas fa-lock me-2"></i>
+              Senha Atual *
+            </label>
+            <div class="input-group">
+              <input
+                [type]="mostrarSenhaAtual ? 'text' : 'password'"
+                class="form-control"
+                id="senhaAtual"
+                name="senhaAtual"
+                [(ngModel)]="senhaAtual"
+                placeholder="Digite sua senha atual"
+                required
+                [class.is-invalid]="
+                  senhaAtualField?.invalid && senhaAtualField?.touched
+                "
+                #senhaAtualField="ngModel"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-primary border"
+                (click)="mostrarSenhaAtual = !mostrarSenhaAtual"
+                title="Mostrar/Ocultar senha"
+              >
+                <i
+                  class="fas"
+                  [ngClass]="mostrarSenhaAtual ? 'fa-eye-slash' : 'fa-eye'"
+                ></i>
+              </button>
+              <div
+                *ngIf="senhaAtualField?.invalid && senhaAtualField?.touched"
+                class="invalid-feedback"
+              >
+                Senha atual é obrigatória
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="novaSenha" class="form-label">
+              <i class="fas fa-lock me-2"></i>
+              Nova Senha *
+            </label>
+            <div class="input-group">
+              <input
+                [type]="mostrarNovaSenha ? 'text' : 'password'"
+                class="form-control"
+                id="novaSenha"
+                name="novaSenha"
+                [(ngModel)]="novaSenha"
+                placeholder="Digite sua nova senha"
+                required
+                minlength="6"
+                [class.is-invalid]="
+                  novaSenhaField?.invalid && novaSenhaField?.touched
+                "
+                #novaSenhaField="ngModel"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-primary border"
+                (click)="mostrarNovaSenha = !mostrarNovaSenha"
+                title="Mostrar/Ocultar senha"
+              >
+                <i
+                  class="fas"
+                  [ngClass]="mostrarNovaSenha ? 'fa-eye-slash' : 'fa-eye'"
+                ></i>
+              </button>
+              <div
+                *ngIf="novaSenhaField?.invalid && novaSenhaField?.touched"
+                class="invalid-feedback"
+              >
+                <div *ngIf="novaSenhaField?.hasError('required')">
+                  Nova senha é obrigatória
+                </div>
+                <div *ngIf="novaSenhaField?.hasError('minlength')">
+                  A senha deve ter pelo menos 6 caracteres
+                </div>
+              </div>
+            </div>
+            <!-- <div class="form-text">
+              <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                A senha deve ter pelo menos 6 caracteres
+              </small>
+            </div> -->
+          </div>
+
+          <div class="mb-3">
+            <label for="confirmarSenha" class="form-label">
+              <i class="fas fa-lock me-2"></i>
+              Confirmar Nova Senha *
+            </label>
+            <div class="input-group">
+              <input
+                [type]="mostrarConfirmarSenha ? 'text' : 'password'"
+                class="form-control"
+                id="confirmarSenha"
+                name="confirmarSenha"
+                [(ngModel)]="confirmarSenha"
+                placeholder="Confirme sua nova senha"
+                required
+                [class.is-invalid]="
+                  (confirmarSenhaField?.invalid &&
+                    confirmarSenhaField?.touched) ||
+                  (novaSenha !== confirmarSenha && confirmarSenhaField?.touched)
+                "
+                #confirmarSenhaField="ngModel"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-primary border"
+                (click)="mostrarConfirmarSenha = !mostrarConfirmarSenha"
+                title="Mostrar/Ocultar senha"
+              >
+                <i
+                  class="fas"
+                  [ngClass]="mostrarConfirmarSenha ? 'fa-eye-slash' : 'fa-eye'"
+                ></i>
+              </button>
+              <div
+                *ngIf="
+                  (confirmarSenhaField?.invalid &&
+                    confirmarSenhaField?.touched) ||
+                  (novaSenha !== confirmarSenha && confirmarSenhaField?.touched)
+                "
+                class="invalid-feedback"
+              >
+                <div *ngIf="confirmarSenhaField?.hasError('required')">
+                  Confirmação de senha é obrigatória
+                </div>
+                <div
+                  *ngIf="
+                    novaSenha !== confirmarSenha &&
+                    !confirmarSenhaField?.hasError('required')
+                  "
+                >
+                  As senhas não coincidem
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+            [disabled]="alterandoSenha"
+            (click)="resetarFormularioSenha()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary d-flex align-items-center justify-content-center"
+            [disabled]="
+              senhaForm.invalid ||
+              novaSenha !== confirmarSenha ||
+              alterandoSenha
+            "
+          >
+            <span *ngIf="alterandoSenha" class="loading me-2"></span>
+            <i *ngIf="!alterandoSenha" class="fas fa-key me-2"></i>
+            Alterar Senha
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

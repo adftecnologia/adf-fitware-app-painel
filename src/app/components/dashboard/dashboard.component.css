@@ -1,0 +1,70 @@
+/* Dashboard Component Styles */
+
+/* Container Styles */
+.dashboard-container {
+  padding: 1rem;
+}
+
+/* Table Styles for Dashboard */
+.dashboard-container .table-container .table thead th:first-child {
+  min-width: 250px;
+}
+
+/* Truncate name styles */
+.dashboard-container .table-name-text {
+  max-width: 350px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Truncate badge styles for secretaria */
+.dashboard-container .badge-primary {
+  max-width: 375px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+}
+
+/* Text wrap styles for indicante badge */
+.dashboard-container .badge-success {
+  max-width: 160px;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.2;
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Empty State Styles */
+.empty-state-desktop {
+  padding: 2rem 0;
+}
+
+.empty-state-mobile {
+  padding: 1.5rem 0;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 0.5rem;
+  }
+
+  .dashboard-container .table-name-text {
+    max-width: 150px;
+  }
+
+  .dashboard-container .badge-primary {
+    max-width: 120px;
+  }
+
+  .dashboard-container .badge-success {
+    max-width: 120px;
+  }
+
+  .dashboard-container .table-container .table thead th:first-child {
+    min-width: 200px;
+  }
+}

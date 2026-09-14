@@ -1,0 +1,29 @@
+<!-- Loading Overlay -->
+<div class="loading-overlay">
+  <div class="loading-container">
+    <!-- Logo/Brand -->
+    <div class="loading-brand mb-4" *ngIf="showBrand">
+      <i class="fas fa-users text-primary fa-3x mb-3"></i>
+      <h3 class="text-dark fw-bold">SGCA</h3>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner mb-3">
+      <div class="spinner-ring">
+        <div></div>
+      </div>
+    </div>
+
+    <!-- Loading Text -->
+    <p class="loading-text">{{ message }}</p>
+
+    <!-- Progress Bar -->
+    <div class="progress loading-progress" *ngIf="showProgress">
+      <div
+        class="progress-bar progress-bar-striped progress-bar-animated"
+        role="progressbar"
+        style="width: 100%"
+      ></div>
+    </div>
+  </div>
+</div>

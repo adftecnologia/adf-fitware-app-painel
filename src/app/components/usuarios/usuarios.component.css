@@ -1,0 +1,234 @@
+/* Container Styles */
+.usuarios-container {
+  padding: 1rem;
+}
+
+/* Header Styles */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.usuarios-table-container .table thead th:first-child {
+  min-width: 200px;
+}
+
+.usuarios-table-container .table thead th:nth-child(2) {
+  width: 183px;
+}
+
+.usuarios-table-container .table thead th:nth-child(3) {
+  width: 200px;
+}
+
+.usuarios-table-container .table thead th:nth-child(4) {
+  width: 120px;
+}
+
+.usuarios-table-container .table thead th:last-child {
+  width: 120px;
+}
+
+/* Empty State Styles */
+.empty-state-desktop {
+  padding: 2rem 0;
+}
+
+.empty-state-mobile {
+  padding: 1.5rem 0;
+}
+
+/* Modal Styles */
+.usuarios-modal .modal-dialog {
+  max-width: 600px;
+}
+
+.usuarios-modal .modal-body {
+  padding: 1.5rem;
+}
+
+/* Filter Container */
+.filters-container {
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .usuarios-container {
+    padding: 0.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  .filters-container {
+    margin-bottom: 1rem;
+  }
+}
+
+/* ✅ Box list com flexbox para quebra de linha automática */
+.box-list-flex {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 50px;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+/* ✅ Badges com layout inline e truncamento de texto */
+.item-badge {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  margin: 0 !important;
+  flex-shrink: 0;
+  max-width: 100%; /*300px;*/ /* Largura máxima do badge */
+  overflow: hidden;
+}
+
+/* ✅ Texto do badge com truncamento */
+.item-badge-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%; /*240px;*/ /* Deixa espaço para o botão X */
+  display: inline-block;
+}
+
+/* ✅ Tooltip para mostrar texto completo */
+.item-badge[title] {
+  cursor: help;
+}
+
+/* ✅ Botão de remover melhorado */
+.item-remove-btn {
+  font-size: 0.75rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-left: 4px;
+}
+
+.item-remove-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* ✅ Cores diferenciadas */
+.indicantes-container .item-badge {
+  background-color: #6f42c1 !important;
+  color: white;
+}
+
+.secretarias-container .item-badge {
+  background-color: #6f42c1 !important;
+  /* background-color: #20c997 !important; */
+  color: white;
+}
+
+/* ✅ Responsivo */
+@media (max-width: 768px) {
+  .box-list-flex {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .item-badge {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    /* max-width: 250px;  */
+    /* Menor em mobile */
+  }
+
+  /* .item-badge-text { */
+  /* max-width: 190px; */
+  /* Ajustar para mobile */
+  /* } */
+
+  .item-remove-btn {
+    width: 16px;
+    height: 16px;
+    font-size: 0.625rem;
+  }
+}
+
+/* ✅ Para telas muito pequenas */
+@media (max-width: 480px) {
+  .item-badge {
+    max-width: 200px;
+  }
+
+  .item-badge-text {
+    max-width: 140px;
+  }
+}
+
+/* ✅ Validação para ng-select */
+/* ng-select.is-invalid .ng-select-container {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+ng-select.is-invalid .ng-select-container:focus-within {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+} */
+
+/* ✅ Mensagem de erro sempre visível */
+/* .invalid-feedback.d-block {
+  display: block !important;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #dc3545;
+} */
+
+.box-list {
+  background-color: rgb(243, 243, 243);
+  border-radius: 5px;
+  padding: 10px;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.item-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-wrap: wrap;
+}
+
+.item-remove-btn {
+  font-size: 0.9em;
+}
+
+.name-span {
+  background-color: white;
+  border-radius: 5px;
+  padding: 5px;
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.span-remove {
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: 5px;
+  background-color: rgb(233, 233, 233);
+  padding: 2px;
+  border-radius: 5px;
+}

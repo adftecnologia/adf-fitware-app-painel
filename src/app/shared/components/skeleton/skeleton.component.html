@@ -1,0 +1,17 @@
+<div
+  *ngIf="isVisible"
+  [class.placeholder-glow]="animation === 'glow'"
+  [class.placeholder-wave]="animation === 'wave'"
+>
+  <span
+    class="placeholder"
+    [ngClass]="{
+      rounded: shape === 'rounded',
+      'rounded-circle': shape === 'circle',
+    }"
+    [ngStyle]="{
+      width: width,
+      height: height,
+    }"
+  ></span>
+</div>

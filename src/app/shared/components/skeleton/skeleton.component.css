@@ -1,0 +1,14 @@
+/* Estilos personalizados para o componente skeleton */
+:host {
+  display: block;
+}
+
+/* Garantir que o placeholder tenha pelo menos uma altura mínima visível */
+.placeholder[style*='height: 0'] {
+  min-height: 0.75rem;
+}
+
+/* Ajuste para garantir que o placeholder seja um elemento inline-block quando necessário */
+.placeholder {
+  display: inline-block;
+}

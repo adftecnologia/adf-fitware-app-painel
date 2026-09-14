@@ -1,0 +1,87 @@
+name: 'Merge to Environment Branch'
+description: 'Merge release branches to their corresponding environment branches'
+
+on:
+  workflow_call:
+    inputs:
+      release-branch:
+        description: 'Release branch that was merged'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  check-tag:
+    name: '📜 Criação e verificação da nova tag e incremento de versão'
+    uses: ./.github/workflows/04-check-tag.yaml
+    secrets: inherit
+
+  create-tag:
+    name: '⚠️ Atualização de versão no package.json'
+    # Executa se houve incremento de versão (MINOR/PATCH) ou se for criar tag (TAG)
+    needs: [check-tag]
+    if: needs.check-tag.outputs.version-type != 'NONE'
+    uses: ./.github/workflows/05-create-new-tag.yaml
+    with:
+      version: ${{ needs.check-tag.outputs.new-version }}
+
+    secrets: inherit
+
+  # merge-to-environment:
+  #   name: '🔀 Merge to Environment Branch'
+  #   needs: [check-tag, create-tag]
+  #   if: |
+  #     always() &&
+  #     needs.check-tag.result == 'success' &&
+  #     (needs.create-tag.result == 'success' || needs.create-tag.result == 'skipped')
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+
+  #     - name: Configure Git
+  #       run: |
+  #         git config user.name "github-actions[bot]"
+  #         git config user.email "github-actions[bot]@users.noreply.github.com"
+
+  #     - name: Determine target branch and merge
+  #       run: |
+  #         RELEASE_BRANCH="${{ inputs.release-branch }}"
+
+  #         case "$RELEASE_BRANCH" in
+  #           "develop")
+  #             TARGET_BRANCH="master"
+  #             ;;
+  #           *)
+  #             echo "❌ Unsupported release branch: $RELEASE_BRANCH"
+  #             exit 1
+  #             ;;
+  #         esac
+
+  #         echo "🔀 Merging $RELEASE_BRANCH into $TARGET_BRANCH"
+
+  #         # Fetch and checkout target branch
+  #         git fetch origin $TARGET_BRANCH || {
+  #           echo "⚠️ Branch $TARGET_BRANCH does not exist, creating it..."
+  #           git checkout -b $TARGET_BRANCH
+  #           git push origin $TARGET_BRANCH
+  #           git fetch origin $TARGET_BRANCH
+  #         }
+
+  #         git checkout $TARGET_BRANCH
+
+  #         # Merge release branch into target
+  #         git merge origin/$RELEASE_BRANCH --no-ff -m "chore: merge $RELEASE_BRANCH into $TARGET_BRANCH [skip ci]" || {
+  #           echo "❌ Merge conflict detected"
+  #           exit 1
+  #         }
+
+  #         # Push changes
+  #         git push origin $TARGET_BRANCH
+
+  #         echo "✅ Successfully merged $RELEASE_BRANCH into $TARGET_BRANCH"

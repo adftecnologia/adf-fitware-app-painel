@@ -1,0 +1,108 @@
+name: 'Check Version Tag'
+description: 'Check if version in package.json is valid and greater than existing tags'
+
+on:
+  workflow_call:
+    outputs:
+      new-version:
+        description: 'The version extracted from package.json'
+        value: ${{ jobs.check-tags.outputs.new-version }}
+      version-type:
+        description: 'The version type extracted from package.json'
+        value: ${{ jobs.check-tags.outputs.version-type }}
+      current-version:
+        description: 'The current version extracted from package.json'
+        value: ${{ jobs.check-tags.outputs.current-version }}
+
+jobs:
+  check-tags:
+    runs-on: ubuntu-latest
+    outputs:
+      new-version: ${{ steps.new-version.outputs.new-version }}
+      version-type: ${{ steps.new-version.outputs.version-type }}
+      current-version: ${{ steps.package-version.outputs.version }}
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Obter versão do package.json
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Versão atual: $VERSION"
+
+      - name: Calcular nova versão
+        id: new-version
+        run: |
+          CURRENT_VERSION="${{ steps.package-version.outputs.version }}"
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+
+          echo "Branch de origem: $BRANCH_NAME"
+          echo "Versão atual: $CURRENT_VERSION"
+
+          # Separar os componentes da versão (x.y.z)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # Se PR for para master, apenas criar tag (não incrementar versão)
+          if [[ $TARGET_BRANCH == "master" || $TARGET_BRANCH == "main" ]]; then
+            NEW_VERSION="$CURRENT_VERSION"
+            VERSION_TYPE="TAG"
+            echo "🏷️  PR para master - Versão atual será mantida e tag será criada"
+          # Só incrementa versão se o PR for para develop
+          elif [[ $TARGET_BRANCH != "develop" ]]; then
+            NEW_VERSION="$CURRENT_VERSION"
+            VERSION_TYPE="NONE"
+            echo "ℹ️  PR não é para develop ou master - Mantendo versão atual"
+          # Determinar o tipo de incremento baseado no prefixo da branch
+          elif [[ $BRANCH_NAME == feature/* ]]; then
+            # Incrementar minor version (y) e resetar patch (z) para 0
+            NEW_MINOR=$((MINOR + 1))
+            NEW_VERSION="$MAJOR.$NEW_MINOR.0"
+            VERSION_TYPE="MINOR"
+            echo "🚀 Branch feature/* detectada - Incrementando versão MINOR"
+          elif [[ $BRANCH_NAME == fix/* ]]; then
+            # Incrementar patch version (z)
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+            VERSION_TYPE="PATCH"
+            echo "🔧 Branch fix/* detectada - Incrementando versão PATCH"
+          else
+            # Para outros tipos de branch, manter a versão atual
+            NEW_VERSION="$CURRENT_VERSION"
+            VERSION_TYPE="NONE"
+            echo "ℹ️  Branch não reconhecida - Mantendo versão atual"
+          fi
+
+          echo "Nova versão calculada: $NEW_VERSION"
+          echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version-type=$VERSION_TYPE" >> $GITHUB_OUTPUT
+
+      - name: Notificar PR aceito
+        run: |
+          echo "🎉 PULL REQUEST ACEITO COM SUCESSO! 🎉"
+          echo "=================================="
+          echo "📋 Detalhes do PR:"
+          echo "   • Título: ${{ github.event.pull_request.title }}"
+          echo "   • Autor: ${{ github.event.pull_request.user.login }}"
+          echo "   • Branch origem: ${{ github.event.pull_request.head.ref }}"
+          echo "   • Branch destino: ${{ github.event.pull_request.base.ref }}"
+          echo "   • PR #${{ github.event.pull_request.number }}"
+          echo ""
+          echo "📦 Versionamento:"
+          echo "   • Versão atual: v${{ steps.package-version.outputs.version }}"
+          echo "   • Nova versão: v${{ steps.new-version.outputs.new-version }}"
+          echo "   • Tipo de incremento: ${{ steps.new-version.outputs.version-type }}"
+          echo ""
+          echo "✅ O código foi integrado com sucesso na branch develop!"
+          echo "🚀 Pronto para próximas etapas do pipeline de CI/CD"
+          echo "=================================="

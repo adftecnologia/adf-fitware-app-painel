@@ -1,0 +1,36 @@
+name: 'Merge to Prod'
+description: 'Merge to production branch'
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - develop
+
+permissions:
+  contents: write # Para criar e push de tags
+  packages: write # Para Docker (se necessário)
+  actions: read # Para acessar workflows
+  pull-requests: write
+  issues: write
+
+jobs:
+  merge-to-develop-branch:
+    name: '🔀 Merge to Develop Branch'
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'develop'
+    uses: ./.github/workflows/02-create-mr.yaml
+    with:
+      release-branch: ${{ github.event.pull_request.base.ref }}
+
+  create-next-environment-mr:
+    name: '📝 Create PR to PROD'
+    needs: merge-to-develop-branch
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'develop'
+    uses: ./.github/workflows/01-create-pr.yaml
+    with:
+      base-branch: master
+      pr-title-prefix: '🚀 PR automático de'

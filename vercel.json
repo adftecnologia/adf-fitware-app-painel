@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/sistema-gereciamento-controle-alimenticio/browser",
+  "rewrites": [
+    {
+      "source": "/api/routes/(.*)",
+      "destination": "/api/routes/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/routes/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
+        }
+      ]
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "master": true,
+      "develop": true
+    }
+  },
+  "ignoreCommand": "bash -c 'if [[ \"$VERCEL_GIT_REF\" != \"master\" && \"$VERCEL_GIT_REF\" != \"develop\" ]]; then echo \"Branch $VERCEL_GIT_REF ignored for deployment\"; exit 1; else echo \"Deploying branch $VERCEL_GIT_REF\"; exit 0; fi'"
+}

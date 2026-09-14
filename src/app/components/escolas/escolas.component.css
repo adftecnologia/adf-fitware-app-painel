@@ -1,0 +1,157 @@
+.escolas-container {
+  padding: 1rem;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.escolas-table-container .table thead th:first-child {
+  min-width: 220px;
+}
+
+.escolas-table-container .table thead th:nth-child(2),
+.escolas-table-container .table thead th:nth-child(3),
+.escolas-table-container .table thead th:nth-child(4),
+.escolas-table-container .table thead th:nth-child(5) {
+  width: 130px;
+}
+
+.escolas-table-container .table-name-text {
+  max-width: 380px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty-state-desktop {
+  padding: 2rem 0;
+}
+
+.empty-state-mobile {
+  padding: 1.5rem 0;
+}
+
+.filters-container {
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .escolas-container {
+    padding: 0.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  .filters-container {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Tab styling - modern look */
+.nav-tabs.escola-tabs {
+  background: linear-gradient(180deg, #000, #000);
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 6px;
+  /* border-radius: 10px; */
+  gap: 6px;
+}
+
+.nav-tabs.escola-tabs .nav-item {
+  margin: 0;
+}
+
+.nav-tabs.escola-tabs .nav-link {
+  border: none;
+  background: black;
+  color: #495057;
+  padding: 8px 16px;
+  /* border-radius: 8px; */
+  transition: all .18s ease-in-out;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.nav-tabs.escola-tabs .nav-link:hover {
+  transform: translateY(-2px);
+  background: rgba(0,0,0,0.03);
+}
+
+.nav-tabs.escola-tabs .nav-link.active {
+  background: linear-gradient(90deg, var(--primary-color), #2f6df6);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(47,109,246,0.18);
+}
+
+.tab-content.escola-tab-content {
+  margin-top: 12px;
+  background: #000;
+  border: 1px solid rgba(0,0,0,0.06);
+  /* border-radius: 8px; */
+  padding: 18px;
+}
+
+/* Make tabs responsive: stack into pill-like buttons on small screens */
+@media (max-width: 576px) {
+  .nav-tabs.escola-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .nav-tabs.escola-tabs .nav-link {
+    flex: 0 0 auto;
+    margin-right: 6px;
+  }
+}
+
+/* Small visual tweaks for modal */
+.modal-xl .escola-tabs-wrapper {
+  padding: 6px 12px 0 12px;
+}
+
+.buttom-tab {
+    color: black;
+    border-radius: 10px 10px 0px 0px;
+    margin-right: 6px;
+    margin-right: -20px;
+}
+
+/* Modal com tamanho fixo e scroll interno */
+.modal-escolas-dialog {
+  width: 1200px;
+  max-width: 95vw;
+}
+
+.modal-escolas-content {
+  height: 85vh;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-escolas-content > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.modal-escolas-dialog .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
+.modal-escolas-dialog .modal-footer {
+  flex-shrink: 0;
+  margin-top: auto;
+  background: #fff;
+  border-top: 1px solid rgba(0, 0, 0, 0.125);
+  padding: 1rem 1.25rem;
+}
+

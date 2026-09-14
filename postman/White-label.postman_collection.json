@@ -1,0 +1,208 @@
+{
+  "info": {
+    "_postman_id": "a89d82be-db36-407c-9cd7-ed60dc0885df",
+    "name": "White Label",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "4646787"
+  },
+  "item": [
+    {
+      "name": "List Users",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_firebase}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Auten",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          },
+          {
+            "key": "_vercel_jwt",
+            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1Y1RZV0tteFQ3SHJ3TXZBR3RtZlhOY1YiLCJpYXQiOjE3NTg3NTIxOTMsIm93bmVySWQiOiJ0ZWFtX2RSYWZzV3dBSHlCUTl4SlpEMHYwaW5KdSIsImF1ZCI6InNncG1hLmRldi5hZGZ0ZWNub2xvZ2lhLmNvbS5iciIsInVzZXJuYW1lIjoiYWRmdGVjbm9sb2dpYXNpc3RlbWFzLTUzNTciLCJzdWIiOiJzc28tcHJvdGVjdGlvbiJ9.X39koc50895zwZkcP_tCn0EhVX-zQOnEp1WFEcvz1W4",
+            "type": "text",
+            "disabled": true
+          },
+          {
+            "key": "Cookie",
+            "value": "_vercel_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1Y1RZV0tteFQ3SHJ3TXZBR3RtZlhOY1YiLCJpYXQiOjE3NTg3NTIxOTMsIm93bmVySWQiOiJ0ZWFtX2RSYWZzV3dBSHlCUTl4SlpEMHYwaW5KdSIsImF1ZCI6InNncG1hLmRldi5hZGZ0ZWNub2xvZ2lhLmNvbS5iciIsInVzZXJuYW1lIjoiYWRmdGVjbm9sb2dpYXNpc3RlbWFzLTUzNTciLCJzdWIiOiJzc28tcHJvdGVjdGlvbiJ9.X39koc50895zwZkcP_tCn0EhVX-zQOnEp1WFEcvz1W4\n",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/routes/list-users",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "routes", "list-users"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create User",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_firebase}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Auten",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Teste email\",\n    \"email\": \"sistemassrtaua@gmail.com\",\n    \"role\": \"admin\",\n    \"status\": \"ativo\",\n    \"permissions\": [],\n    \"password\": \"abcd1234\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/routes/create-users",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "routes", "create-users"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update User",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_firebase}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Auten",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"uid\": \"9l43p5lTiiRRepIn8JYl7lgUea32\",\n    \"name\": \"Sidney\",\n    \"email\": \"sidaoswat@gmail.com\",\n    \"role\": \"admin\",\n    \"status\": \"ativo\",\n    \"permissions\": []\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/routes/update-users",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "routes", "update-users"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Password User",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_firebase}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Auten",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"uid\": \"reLTZ0mjmeQ9AEBrpaV2r5xPoYB3\",\n    \"email\": \"sistemassrtaua@gmail.com\",\n    \"password\": \"abcd1234\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/routes/update-password-users",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "routes", "update-password-users"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete User",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_firebase}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Auten",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"uid\": \"9l43p5lTiiRRepIn8JYl7lgUea32\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/routes/delete-users",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "routes", "delete-users"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
