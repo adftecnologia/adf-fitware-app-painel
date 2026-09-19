@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "sistema-gereciamento-controle-alimenticio": {
+    "painel-configuracao-fitware": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/sistema-gereciamento-controle-alimenticio",
+            "outputPath": "dist/painel-configuracao-fitware",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -87,13 +87,13 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "sistema-gereciamento-controle-alimenticio:build:production"
+              "buildTarget": "painel-configuracao-fitware:build:production"
             },
             "development": {
-              "buildTarget": "sistema-gereciamento-controle-alimenticio:build:development"
+              "buildTarget": "painel-configuracao-fitware:build:development"
             },
             "local": {
-              "buildTarget": "sistema-gereciamento-controle-alimenticio:build:local"
+              "buildTarget": "painel-configuracao-fitware:build:local"
             }
           },
           "defaultConfiguration": "local"

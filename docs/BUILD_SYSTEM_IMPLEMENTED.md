@@ -142,7 +142,7 @@ npm run dev:full
 ```bash
 npm run build
 # ✅ API compilada em dist/api/
-# ✅ Angular buildado em dist/sistema-gereciamento-controle-alimenticio/
+# ✅ Angular buildado em dist/painel-configuracao-fitware/
 ```
 
 ---
@@ -165,7 +165,7 @@ npm run build
 ### **🎯 Estrutura Final:**
 
 - **✅ `dist/api/`** - TypeScript compilado para JavaScript
-- **✅ `dist/sistema-gereciamento-controle-alimenticio/`** - Angular buildado
+- **✅ `dist/painel-configuracao-fitware/`** - Angular buildado
 - **✅ Source maps** - Para debugging
 - **✅ Build incremental** - Performance otimizada
 

@@ -98,9 +98,9 @@ try {
   execSync(buildCommand, { stdio: 'inherit' });
 
   // Verificar se o build do Angular funcionou
-  const angularOutputPath = 'dist/sistema-gereciamento-controle-alimenticio';
+  const angularOutputPath = 'dist/painel-configuracao-fitware';
   const angularBrowserPath =
-    'dist/sistema-gereciamento-controle-alimenticio/browser';
+    'dist/painel-configuracao-fitware/browser';
 
   if (
     fs.existsSync(angularBrowserPath) &&
@@ -118,13 +118,13 @@ try {
   console.log('📁 Estrutura gerada:');
   console.log('├── dist/api/              # API TypeScript compilada');
   console.log(
-    '└── dist/sistema-gereciamento-controle-alimenticio/browser/  # Angular buildado'
+    '└── dist/painel-configuracao-fitware/browser/  # Angular buildado'
   );
 
   // 5. Estatísticas
   const apiFiles = getFileCount('dist/api');
   const angularFiles = getFileCount(
-    'dist/sistema-gereciamento-controle-alimenticio'
+    'dist/painel-configuracao-fitware'
   );
 
   console.log(`\n📊 Estatísticas:`);
@@ -132,7 +132,7 @@ try {
   console.log(`   Angular: ${angularFiles} arquivos gerados`);
   console.log(`   Ambiente: ${environmentName}`);
   console.log(
-    `   Output: dist/sistema-gereciamento-controle-alimenticio/browser/index.html`
+    `   Output: dist/painel-configuracao-fitware/browser/index.html`
   );
 } catch (error) {
   console.error('\n❌ Erro no build:', error.message);

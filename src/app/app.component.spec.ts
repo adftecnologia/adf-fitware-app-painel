@@ -14,10 +14,10 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have the 'sistema-gereciamento-controle-alimenticio' title`, () => {
+  it(`should have the 'painel-configuracao-fitware' title`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('sistema-gereciamento-controle-alimenticio');
+    expect(app.title).toEqual('painel-configuracao-fitware');
   });
 
   it('should render title', () => {
@@ -25,7 +25,7 @@ describe('AppComponent', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain(
-      'Hello, sistema-gereciamento-controle-alimenticio'
+      'Hello, painel-configuracao-fitware'
     );
   });
 });

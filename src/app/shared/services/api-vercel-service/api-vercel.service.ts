@@ -8,12 +8,23 @@ import {
 import { inject, Injectable } from '@angular/core';
 import { catchError, finalize, Observable, switchMap, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { EBaseUrls, EHttpHeaders, EHttpVerbs } from '../../enums/url-http.enum';
+import {
+  EBaseUrls,
+  EDevResource,
+  EHttpHeaders,
+  EHttpVerbs,
+} from '../../enums/url-http.enum';
+import { IFirebaseConfigCliente } from '../../models/firebase-config.model';
 import { IUsuario } from '../../models/sistema.model';
 import { AuthService } from '../auth-service/auth.service';
 import { LoadingService } from '../loading-service/loading.service';
 import {
+  IEnvironmentResponse,
+  IEnvironmentsResponse,
   IHttpResponse,
+  ITenantResponse,
+  ITenantsResponse,
+  ITenantTesteResponse,
   IUsuarioCreateResponse,
   IUsuarioResponse,
 } from './../../models/http.model';
@@ -177,6 +188,172 @@ export class ApiVercelService {
       method: EHttpVerbs.DELETE,
       options: {
         body: { uid },
+      },
+    });
+  }
+
+  /// MÓDULO DE CONFIGURAÇÃO (TENANTS) ///
+
+  public getTenants(
+    disabledLoading = false
+  ): Observable<IHttpResponse<ITenantsResponse>> {
+    return this.createRequest<ITenantsResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      options: {
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.TENANTS },
+      },
+    });
+  }
+
+  public provisionarTenant({
+    tenant,
+    serviceAccount,
+    databaseURL,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    serviceAccount: string;
+    databaseURL?: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<ITenantResponse>> {
+    return this.createRequest<ITenantResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.POST,
+      options: {
+        body: { tenant, serviceAccount, databaseURL },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.TENANTS },
+      },
+    });
+  }
+
+  public atualizarTenant({
+    tenant,
+    databaseURL,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    databaseURL: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<ITenantResponse>> {
+    return this.createRequest<ITenantResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.PATCH,
+      options: {
+        body: { tenant, databaseURL },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.TENANTS },
+      },
+    });
+  }
+
+  public removerTenant({
+    tenant,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<ITenantResponse>> {
+    return this.createRequest<ITenantResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.DELETE,
+      options: {
+        body: { tenant },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.TENANTS },
+      },
+    });
+  }
+
+  public testarTenant({
+    tenant,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<ITenantTesteResponse>> {
+    return this.createRequest<ITenantTesteResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.POST,
+      options: {
+        body: { tenant },
+        headers: {
+          [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.TENANT_CONNECTION,
+        },
+      },
+    });
+  }
+
+  /// MÓDULO DE CONFIGURAÇÃO (ENVIRONMENTS) ///
+
+  public getEnvironments(
+    disabledLoading = false
+  ): Observable<IHttpResponse<IEnvironmentsResponse>> {
+    return this.createRequest<IEnvironmentsResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      options: {
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.ENVIRONMENTS },
+      },
+    });
+  }
+
+  public salvarEnvironment({
+    tenant,
+    config,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    config: IFirebaseConfigCliente;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IEnvironmentResponse>> {
+    return this.createRequest<IEnvironmentResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.POST,
+      options: {
+        body: { tenant, config },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.ENVIRONMENTS },
+      },
+    });
+  }
+
+  public atualizarEnvironment({
+    tenant,
+    config,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    config: IFirebaseConfigCliente;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IEnvironmentResponse>> {
+    return this.createRequest<IEnvironmentResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.PATCH,
+      options: {
+        body: { tenant, config },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.ENVIRONMENTS },
+      },
+    });
+  }
+
+  public removerEnvironment({
+    tenant,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IEnvironmentResponse>> {
+    return this.createRequest<IEnvironmentResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.DELETE,
+      options: {
+        body: { tenant },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.ENVIRONMENTS },
       },
     });
   }

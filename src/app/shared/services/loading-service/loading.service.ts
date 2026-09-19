@@ -18,6 +18,7 @@ export class LoadingService {
     [EBaseUrls.UPDATE_PASSWORD_USERS, new BehaviorSubject<boolean>(false)],
     [EBaseUrls.DELETE_USERS, new BehaviorSubject<boolean>(false)],
     [EBaseUrls.LIST_USERS, new BehaviorSubject<boolean>(false)],
+    [EBaseUrls.DEV_CONFIG, new BehaviorSubject<boolean>(false)],
   ]);
 
   get loading$(): Observable<boolean> {
@@ -45,7 +46,7 @@ export class LoadingService {
     this.messageSubject.next(message);
   }
 
-  private getLoadingByUrl(url: EBaseUrls): Observable<boolean> {
+  public getLoadingByUrl(url: EBaseUrls): Observable<boolean> {
     return this.appLoadingMaps.get(url)!.asObservable();
   }
 

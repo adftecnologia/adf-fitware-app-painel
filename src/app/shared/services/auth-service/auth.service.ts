@@ -4,7 +4,6 @@ import { Unsubscribe } from 'firebase/auth';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ECollectionFirebase } from '../../enums/firebase.enum';
 import { ELocalStorage } from '../../enums/localstorage.enum';
-import { EUsuarioPerfil } from '../../enums/sistema.enum';
 import { ICurrentUserFirebase } from '../../models/firebase.model';
 import { IUsuario } from '../../models/sistema.model';
 import { FirebaseService } from '../firebase-service/firebase.service';
@@ -43,13 +42,13 @@ export class AuthService implements OnDestroy {
     // showAlertErro?: boolean TODO - Aplicar alert se precisar
   ): Promise<IUsuario | null> {
     try {
-      let userProfile =
+      const userProfile =
         await this.firebaseService.getDataByIdFromFirestore<IUsuario>(
           ECollectionFirebase.USUARIOS,
           userId
         );
 
-      if (userProfile && userProfile.role !== EUsuarioPerfil.VISUALIZADOR) {
+      if (userProfile) {
         userProfile.permissions = [];
       }
 

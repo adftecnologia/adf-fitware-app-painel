@@ -4,6 +4,7 @@ export enum EBaseUrls {
   UPDATE_PASSWORD_USERS = 'update-password-users',
   DELETE_USERS = 'delete-users',
   LIST_USERS = 'list-users',
+  DEV_CONFIG = 'dev-config',
 }
 
 export enum EHttpVerbs {
@@ -19,4 +20,11 @@ export enum EHttpHeaders {
   AUTHORIZATION = 'Authorization',
   CONTENT_TYPE = 'Content-Type',
   X_TENANT_ID = 'X-Tenant-ID',
+  X_DEV_RESOURCE = 'X-Dev-Resource',
+}
+
+export enum EDevResource {
+  TENANTS = 'tenants',
+  TENANT_CONNECTION = 'tenant-connection',
+  ENVIRONMENTS = 'environments',
 }

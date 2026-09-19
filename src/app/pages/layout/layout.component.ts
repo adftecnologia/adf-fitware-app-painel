@@ -43,7 +43,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   public routes: IRoutesSistema[] = [];
   public sidebarCollapsed = false;
-  public pageTitle = TITULO_LAYOUT[ERoutes.DASHBOARD];
+  public pageTitle = TITULO_LAYOUT[ERoutes.PERFIL_USUARIO];
   public currentUser: ICurrentUserFirebase = null;
 
   constructor(
@@ -72,7 +72,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     // Define o título correto já na carga inicial (F5 / URL direta)
     this.pageTitle =
       TITULO_LAYOUT[this.router.url as IValidRoutes] ??
-      TITULO_LAYOUT[ERoutes.DASHBOARD];
+      TITULO_LAYOUT[ERoutes.PERFIL_USUARIO];
 
     const routerSub = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))

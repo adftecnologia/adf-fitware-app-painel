@@ -17,8 +17,6 @@ import {
   STATUS_COLORS,
 } from '../../shared/constants/helper.const';
 import {
-  EListaComTodos,
-  EUsuarioKeyPermission,
   EUsuarioPerfil,
   EUsuarioStatus,
 } from '../../shared/enums/sistema.enum';
@@ -27,14 +25,11 @@ import {
   normalizarTexto,
 } from '../../shared/functions/sistema.function';
 import {
-  IFornecedor,
-  ISecretaria,
   IUsuario,
   IUsuarioPermission,
 } from '../../shared/models/sistema.model';
 import { AlertService } from '../../shared/services/alert-service/alert.service';
 import { ApiVercelService } from '../../shared/services/api-vercel-service/api-vercel.service';
-import { DataService } from '../../shared/services/data-service/data.service';
 import { LoadingService } from '../../shared/services/loading-service/loading.service';
 import { ConditionalPasswordValidators } from '../../shared/validators/conditional-password/conditional-password.validators';
 
@@ -68,18 +63,6 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
   public usuarioForm!: FormGroup;
 
-  public indicantesInit: IFornecedor[] = [];
-  public indicantes: IFornecedor[] = [];
-  public selectIndicante: IFornecedor | null = null;
-  public indicantesSelecionados: IFornecedor[] = [];
-  private qtdTotalIndicantes: number = 0;
-
-  public secretariasInit: ISecretaria[] = [];
-  public secretarias: ISecretaria[] = [];
-  public selectSecretaria: ISecretaria | null = null;
-  public secretariasSelecionadas: ISecretaria[] = [];
-  private qtdTotalSecretarias: number = 0;
-
   public filtro = '';
   public salvando = false;
   public excluindo = false;
@@ -93,7 +76,6 @@ export class UsuariosComponent implements OnInit, OnDestroy {
   private userModalInstance: any;
 
   constructor(
-    private readonly dataService: DataService,
     private readonly fb: FormBuilder,
     private readonly alertService: AlertService,
     private readonly apiVercelService: ApiVercelService,
@@ -132,14 +114,6 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
   get confirmPassword() {
     return this.usuarioForm.get('confirmPassword');
-  }
-
-  get isVisualizadorSelecionado(): boolean {
-    return this.usuarioForm.get('role')?.value === EUsuarioPerfil.VISUALIZADOR;
-  }
-
-  get isCadastradorSelecionado(): boolean {
-    return this.usuarioForm.get('role')?.value === EUsuarioPerfil.CADASTRADOR;
   }
 
   get passwordErrors(): string[] {
@@ -204,19 +178,7 @@ export class UsuariosComponent implements OnInit, OnDestroy {
   }
 
   get disableButtonSalvar(): boolean {
-    if (this.salvando || this.usuarioForm.invalid) {
-      return true;
-    }
-
-    if (
-      this.isVisualizadorSelecionado &&
-      (this.indicantesSelecionados.length === 0 ||
-        this.secretariasSelecionadas.length === 0)
-    ) {
-      return true;
-    }
-
-    return false;
+    return this.salvando || this.usuarioForm.invalid;
   }
 
   private initForm(): void {
@@ -287,39 +249,6 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
     this.apiLoadingListaUsuarios$ =
       this.loadingService.getListaUsuariosLoading() as Observable<boolean>;
-
-    // const indicantesSub = this.dataService.getIndicantes.subscribe(
-    //   indicantes => {
-    //     this.qtdTotalIndicantes = indicantes.length;
-    //     this.indicantes = [
-    //       {
-    //         id: EListaComTodos.TODOS,
-    //         nome: 'Todos os Indicantes',
-    //         categoria: '',
-    //       } as any,
-    //       ...indicantes,
-    //     ];
-    //     this.indicantesInit = [...this.indicantes];
-    //   }
-    // );
-
-    const secretariasSub = this.dataService.getSecretarias.subscribe(
-      secretarias => {
-        this.qtdTotalSecretarias = secretarias.length;
-        this.secretarias = [
-          {
-            id: EListaComTodos.TODOS,
-            nome: 'Todas as Secretarias',
-            lotacoes: [],
-          },
-          ...secretarias,
-        ];
-        this.secretariasInit = [...this.secretarias];
-      }
-    );
-
-    // this.subscriptions.push(indicantesSub, secretariasSub);
-    this.subscriptions.push(secretariasSub);
   }
 
   public aplicarFiltro(): void {
@@ -338,10 +267,6 @@ export class UsuariosComponent implements OnInit, OnDestroy {
   }
 
   public abrirModal(): void {
-    this.indicantes = [...this.indicantesInit];
-    this.secretarias = [...this.secretariasInit];
-    this.secretariasSelecionadas = [];
-    this.indicantesSelecionados = [];
     this.usuarioEditando = null;
     this.usuarioForm.reset();
     this.updatePasswordValidators();
@@ -351,9 +276,6 @@ export class UsuariosComponent implements OnInit, OnDestroy {
   }
 
   public editarUsuario(usuario: IUsuario): void {
-    this.indicantes = [...this.indicantesInit];
-    this.secretarias = [...this.secretariasInit];
-
     this.usuarioEditando = usuario;
     this.usuarioForm.patchValue({
       name: usuario.name,
@@ -367,35 +289,6 @@ export class UsuariosComponent implements OnInit, OnDestroy {
     // Atualiza validators para modo de edição
     this.updatePasswordValidators();
     this.resetFormState();
-
-    // const indicantesPermission = usuario.permissions?.find(
-    //   p => p.key === EUsuarioKeyPermission.INDICANTES
-    // ) as IUsuarioPermission;
-
-    const secretariasPermission = usuario.permissions?.find(
-      p => p.key === EUsuarioKeyPermission.SECRETARIAS
-    ) as IUsuarioPermission;
-
-    this.indicantesSelecionados = []; /*indicantesPermission
-      ? this.indicantes.filter(indicante =>
-          indicantesPermission?.resources.some(ind => ind === indicante.id)
-        )
-      : [];*/
-
-    this.secretariasSelecionadas = secretariasPermission
-      ? this.secretarias.filter(secretaria =>
-          secretariasPermission?.resources.some(sec => sec === secretaria.id)
-        )
-      : [];
-
-    this.indicantes = this.indicantes.filter(
-      indicante => !this.indicantesSelecionados.find(i => i.id === indicante.id)
-    );
-
-    this.secretarias = this.secretarias.filter(
-      secretaria =>
-        !this.secretariasSelecionadas.find(s => s.id === secretaria.id)
-    );
 
     this.mostrarModalUsuario();
   }
@@ -417,7 +310,7 @@ export class UsuariosComponent implements OnInit, OnDestroy {
     const usuarioData: IUsuario = {
       ...data,
       uid: this.usuarioEditando ? this.usuarioEditando.id : undefined,
-      permissions: this.generatePermissions(),
+      permissions: [] as IUsuarioPermission[],
     };
 
     // Remove password se estiver vazia durante edição
@@ -611,118 +504,6 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
   public getInitials(name: string): string {
     return getTwoLetterAcronym(name);
-  }
-
-  public hasTodosIndicantesSelecionados(): boolean {
-    const itemTodosSelecionados = this.indicantesSelecionados.some(
-      indicante => indicante.id === EListaComTodos.TODOS
-    );
-
-    if (itemTodosSelecionados) {
-      return true;
-    }
-
-    return this.indicantesSelecionados.length === this.qtdTotalIndicantes;
-  }
-
-  public hasTodosSecretariasSelecionadas(): boolean {
-    const itemTodosSelecionados = this.secretariasSelecionadas.some(
-      secretaria => secretaria.id === EListaComTodos.TODOS
-    );
-
-    if (itemTodosSelecionados) {
-      return true;
-    }
-
-    return this.secretariasSelecionadas.length === this.qtdTotalSecretarias;
-  }
-
-  public adicionarIndicantes(): void {
-    const indicante = this.selectIndicante as IFornecedor;
-    const indicantesFilter = this.indicantes.filter(i => i.id !== indicante.id);
-
-    if (indicante.id === EListaComTodos.TODOS) {
-      this.indicantes = [...indicantesFilter, ...this.indicantesSelecionados];
-      this.indicantesSelecionados = [indicante];
-    } else {
-      this.indicantesSelecionados.push(indicante);
-      this.indicantes = indicantesFilter;
-    }
-
-    this.selectIndicante = null;
-  }
-
-  public adicionarSecretarias(): void {
-    const secretaria = this.selectSecretaria as ISecretaria;
-    const secretariasFilter = this.secretarias.filter(
-      s => s.id !== secretaria.id
-    );
-
-    if (secretaria.id === EListaComTodos.TODOS) {
-      this.secretarias = [
-        ...secretariasFilter,
-        ...this.secretariasSelecionadas,
-      ];
-      this.secretariasSelecionadas = [secretaria];
-    } else {
-      this.secretariasSelecionadas.push(secretaria);
-      this.secretarias = secretariasFilter;
-    }
-
-    this.selectSecretaria = null;
-  }
-
-  public removerIndicante(indicante: IFornecedor): void {
-    this.indicantesSelecionados = this.indicantesSelecionados.filter(
-      i => i.id !== indicante.id
-    );
-
-    this.indicantes =
-      indicante.id === EListaComTodos.TODOS
-        ? [indicante, ...this.indicantes]
-        : [...this.indicantes, indicante];
-  }
-
-  public removerSecretaria(secretaria: ISecretaria): void {
-    this.secretariasSelecionadas = this.secretariasSelecionadas.filter(
-      s => s.id !== secretaria.id
-    );
-    this.secretarias =
-      secretaria.id === EListaComTodos.TODOS
-        ? [secretaria, ...this.secretarias]
-        : [...this.secretarias, secretaria];
-  }
-
-  public limparArrayPermissoes(): void {
-    if (this.role?.value !== EUsuarioPerfil.VISUALIZADOR) {
-      this.indicantesSelecionados = [];
-      this.secretariasSelecionadas = [];
-      this.indicantes = [...this.indicantesInit];
-      this.secretarias = [...this.secretariasInit];
-    }
-  }
-
-  private generatePermissions(): IUsuarioPermission[] {
-    if (this.role?.value === EUsuarioPerfil.VISUALIZADOR) {
-      const indicantesPermissions = this.indicantesSelecionados.map(
-        item => item.id
-      );
-      const secretariasPermissions = this.secretariasSelecionadas.map(
-        item => item.id
-      );
-
-      return [
-        // {
-        //   key: EUsuarioKeyPermission.INDICANTES,
-        //   resources: indicantesPermissions,
-        // },
-        {
-          key: EUsuarioKeyPermission.SECRETARIAS,
-          resources: secretariasPermissions,
-        },
-      ] as IUsuarioPermission[];
-    }
-    return [];
   }
 
   public getBadgeClassForRole(role: EUsuarioPerfil): string {

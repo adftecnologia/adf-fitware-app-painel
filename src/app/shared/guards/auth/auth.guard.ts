@@ -96,7 +96,7 @@ export const AuthLoginGuard: CanActivateFn = (route, state) => {
         }
 
         setTimeout(() => {
-          router.navigate([ERoutes.DASHBOARD]);
+          router.navigate(['/']);
         }, 800);
         return false;
       }

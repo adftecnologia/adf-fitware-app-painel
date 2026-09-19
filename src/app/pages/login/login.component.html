@@ -1,38 +1,6 @@
 <div class="login-page d-flex">
-  <!-- Lado esquerdo - Informações do sistema (oculto em dispositivos móveis) -->
-  <div
-    class="col-md-6 d-none d-md-flex bg-primary-gradient align-items-center justify-content-center text-white"
-  >
-    <div class="text-center mx-4">
-      <div class="mb-4">
-        <img
-          src="/logo.png"
-          alt="Logo SGCA"
-          style="max-width: 180px; width: 100%; height: auto; object-fit: contain;"
-          class="mb-3"
-        />
-        <h1 class="display-4 fw-bold">
-          Sistema de Gerenciamento de Controle Escolas
-        </h1>
-        <!-- <p class="lead">Gerencie e controle a de forma eficiente</p> -->
-      </div>
-
-      <div class="features-list text-start">
-        <!-- <div class="feature-item">
-          <i class="fas fa-chart-bar me-3"></i>
-          Dashboard com gráficos interativos
-        </div> -->
-        <!-- <div class="feature-item">
-          <i class="fas fa-user-plus me-3"></i>
-          Cadastro completo de pessoas
-        </div> -->
-        <!-- <div class="feature-item">
-          <i class="fas fa-filter me-3"></i>
-          Filtros avançados
-        </div> -->
-      </div>
-    </div>
-  </div>
+  <!-- Lado esquerdo - Marca (oculto em dispositivos móveis) -->
+  <app-brand-panel></app-brand-panel>
 
   <!-- Lado direito - Formulário de login (ocupa toda tela em mobile) -->
   <div
@@ -46,7 +14,7 @@
               <i class="fas fa-user"></i>
             </div>
             <h3 class="card-title">Bem-vindo!</h3>
-            <p class="text-muted">Faça login para acessar o sistema</p>
+            <p class="text-muted">Faça login para acessar o painel</p>
           </div>
 
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
@@ -114,17 +82,6 @@
               </div>
             </div>
 
-            <!-- <div class="mb-3 form-check">
-              <input 
-                type="checkbox" 
-                class="form-check-input" 
-                id="rememberMe"
-                formControlName="rememberMe">
-              <label class="form-check-label" for="rememberMe">
-                Lembrar de mim
-              </label>
-            </div> -->
-
             <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
               {{ errorMessage }}
             </div>
@@ -139,14 +96,21 @@
               Entrar
             </button>
           </form>
-
-          <!-- <div class="text-center">
-            <small class="text-muted">
-              Esqueceu sua senha? 
-              <a href="#" class="text-primary">Clique aqui</a>
-            </small>
-          </div> -->
         </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="text-center mt-3">
+        <small class="text-muted">
+          Criado por ©<a
+            href="https://adftecnologia.com.br/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="color: inherit; text-decoration: none"
+            >AdF Tecnologia</a
+          >
+          {{ anoAtual }}
+        </small>
       </div>
     </div>
   </div>

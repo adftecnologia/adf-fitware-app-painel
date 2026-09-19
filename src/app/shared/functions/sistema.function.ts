@@ -1,5 +1,3 @@
-import { EDistrito, ETipoContrato } from '../enums/sistema.enum';
-
 export const getUsernameAcronym = (name: string): string => {
   return name
     .toUpperCase()
@@ -22,34 +20,6 @@ export const getTwoLetterAcronym = (name: string): string => {
     .join('')
     .toUpperCase()
     .substring(0, 2);
-};
-
-export const convertSalaryToPtBrCurrency = (salary: number) => {
-  if (salary === null || salary === undefined) {
-    return 'N/A';
-  }
-  return salary.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-};
-
-export const formatWorkload = (workload: string) => {
-  if (!workload) {
-    return 'N/A';
-  }
-  if (!workload.includes('h')) {
-    return `${workload}h`;
-  }
-  return workload;
-};
-
-export const getTipoContratoByValue = (value: ETipoContrato | string) => {
-  return ETipoContrato[value as keyof typeof ETipoContrato];
-};
-
-export const getDistritoByValue = (value: EDistrito | string) => {
-  return EDistrito[value as keyof typeof EDistrito];
 };
 
 /**

@@ -7,13 +7,13 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ERoutes } from '../../shared/enums/routes.enum';
+import { BrandPanelComponent } from '../../components/brand-panel/brand-panel.component';
 import { AuthService } from '../../shared/services/auth-service/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, BrandPanelComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
 })
@@ -22,6 +22,7 @@ export class LoginComponent implements OnInit {
   showPassword = false;
   isLoading = false;
   errorMessage = '';
+  anoAtual = new Date().getFullYear();
 
   constructor(
     private fb: FormBuilder,
@@ -68,7 +69,7 @@ export class LoginComponent implements OnInit {
       .login(email, password)
       .then(() => {
         setTimeout(() => {
-          this.router.navigate([ERoutes.DASHBOARD]);
+          this.router.navigate(['/']);
         }, 200);
       })
       .catch(

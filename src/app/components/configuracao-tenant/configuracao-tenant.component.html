@@ -1,0 +1,322 @@
+<div class="page-header mb-4">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h4 class="mb-0">
+        <i class="fas fa-hdd me-2"></i>
+        Tenants provisionados
+      </h4>
+      <small class="text-muted">
+        Credenciais de acesso administrativo aos projetos Firebase dos tenants
+        clientes.
+      </small>
+    </div>
+    <div class="col-md-4 text-md-end mt-2 mt-md-0">
+      <button type="button" class="btn btn-primary" (click)="abrirFormulario()">
+        <i class="fas fa-plus me-2"></i>
+        Provisionar tenant
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="filters-container">
+  <div class="row">
+    <div class="col-md-6">
+      <label class="form-label">Buscar Tenant</label>
+      <div class="input-group">
+        <span class="input-group-text">
+          <i class="fas fa-search"></i>
+        </span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Digite o nome do tenant..."
+          [(ngModel)]="filtro"
+          (input)="aplicarFiltro()"
+          [disabled]="(carregandoTenants$ | async) === true"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-skeleton
+  *ngIf="carregandoTenants$ | async"
+  [isVisible]="true"
+  height="200px"
+  [shape]="'rounded'"
+  [animation]="'wave'"
+></app-skeleton>
+
+<div
+  *ngIf="!(carregandoTenants$ | async) && !tenants.length"
+  class="alert alert-info"
+>
+  Nenhum tenant provisionado ainda.
+</div>
+
+<div
+  *ngIf="
+    !(carregandoTenants$ | async) && tenants.length && !tenantsFiltrados.length
+  "
+  class="alert alert-info"
+>
+  Nenhum tenant encontrado com o filtro aplicado.
+</div>
+
+<div
+  *ngIf="!(carregandoTenants$ | async) && tenantsFiltrados.length"
+  class="table-container"
+>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col">Tenant</th>
+          <th scope="col">Projeto Firebase</th>
+          <th scope="col" class="d-none d-md-table-cell">Conta de serviço</th>
+          <th scope="col" class="d-none d-md-table-cell">Atualizado em</th>
+          <th scope="col" class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of tenantsFiltrados">
+          <td>
+            <b>{{ item.tenant }}</b>
+          </td>
+          <td>{{ item.projectId }}</td>
+          <td
+            class="d-none d-md-table-cell coluna-conta"
+            [title]="item.clientEmail"
+          >
+            {{ item.clientEmail }}
+          </td>
+          <td class="d-none d-md-table-cell">
+            {{ item.updatedAt | date: 'dd/MM/yyyy HH:mm' }}
+          </td>
+          <td class="p-2">
+            <div class="btn-group btn-group-sm d-flex d-md-inline-flex">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="testarConexao(item.tenant)"
+                [disabled]="testandoTenant === item.tenant"
+                title="Testar conexão"
+              >
+                <span
+                  *ngIf="testandoTenant === item.tenant"
+                  class="loading me-1"
+                ></span>
+                <i
+                  *ngIf="testandoTenant !== item.tenant"
+                  class="fas fa-plug"
+                ></i>
+                <span class="d-none d-sm-inline ms-1">Testar</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-primary"
+                (click)="abrirEdicao(item)"
+                title="Editar"
+              >
+                <i class="fas fa-edit"></i>
+                <span class="d-none d-sm-inline ms-1">Editar</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-danger"
+                (click)="abrirRemocao(item)"
+                title="Remover"
+              >
+                <i class="fas fa-trash"></i>
+                <span class="d-none d-sm-inline ms-1">Remover</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal: provisionar/editar tenant -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="mostrarFormulario"
+  (click)="fecharFormulario()"
+></div>
+<div class="modal-custom" *ngIf="mostrarFormulario">
+  <div class="modal-conteudo">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">
+        {{ isEdicao ? 'Editar tenant' : 'Provisionar tenant' }}
+      </h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharFormulario()"
+      ></button>
+    </div>
+
+    <form [formGroup]="tenantForm" (ngSubmit)="provisionar()">
+      <div class="modal-corpo">
+        <div class="alert alert-warning py-2">
+          <i class="fas fa-shield-alt me-1"></i>
+          A chave privada dá acesso administrativo total ao projeto do cliente.
+          Ela é cifrada antes de ser gravada e nunca é exibida de volta. Apague
+          o arquivo baixado depois de colar o conteúdo aqui.
+        </div>
+
+        <div *ngIf="isEdicao" class="alert alert-info py-2">
+          <i class="fas fa-info-circle me-1"></i>
+          Deixe o JSON em branco para manter a credencial atual e alterar apenas
+          a URL do banco. Preencha somente se for trocar a chave.
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="tenant"
+            >Identificador (Tenant/subdomínio) *</label
+          >
+          <input
+            id="tenant"
+            type="text"
+            class="form-control"
+            formControlName="tenant"
+            placeholder="acme"
+            autocomplete="off"
+            [class.is-invalid]="tenant?.invalid && tenant?.touched"
+          />
+          <div class="form-text">
+            Apenas letras minúsculas, números e hífen. É o subdomínio pelo qual
+            o cliente acessa o sistema.
+          </div>
+          <div class="invalid-feedback">
+            Informe um identificador válido (letras minúsculas, números e
+            hífen).
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="serviceAccount">
+            JSON da conta de serviço {{ isEdicao ? '(opcional)' : '*' }}
+          </label>
+          <textarea
+            id="serviceAccount"
+            class="form-control fonte-mono"
+            rows="8"
+            formControlName="serviceAccount"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder='{ "type": "service_account", "project_id": "...", "private_key": "..." }'
+            [class.is-invalid]="
+              serviceAccount?.invalid && serviceAccount?.touched
+            "
+          ></textarea>
+          <div class="form-text">
+            Firebase Console do projeto do cliente → Configurações do projeto →
+            Contas de serviço → Gerar nova chave privada.
+          </div>
+          <div class="invalid-feedback">
+            Cole o conteúdo do arquivo JSON baixado do Firebase.
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label" for="databaseURL">
+            URL do Realtime Database
+          </label>
+          <input
+            id="databaseURL"
+            type="text"
+            class="form-control"
+            formControlName="databaseURL"
+            autocomplete="off"
+            placeholder="https://projeto-default-rtdb.firebaseio.com"
+          />
+          <div class="form-text">
+            Opcional. Em branco, é derivada do projeto informado no JSON.
+            Preencha se o banco estiver em outra região.
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-rodape">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="fecharFormulario()"
+          [disabled]="salvando"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="salvando">
+          <span *ngIf="salvando" class="loading me-2"></span>
+          {{
+            salvando
+              ? 'Salvando...'
+              : isEdicao
+                ? 'Salvar alterações'
+                : 'Provisionar'
+          }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: remover tenant -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="tenantParaRemover"
+  (click)="fecharRemocao()"
+></div>
+<div class="modal-custom" *ngIf="tenantParaRemover">
+  <div class="modal-conteudo modal-conteudo-pequeno">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">Remover tenant</h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharRemocao()"
+      ></button>
+    </div>
+
+    <div class="modal-corpo">
+      <p>
+        Remover a credencial do tenant
+        <b>{{ tenantParaRemover.tenant }}</b> ({{
+          tenantParaRemover.projectId
+        }})?
+      </p>
+      <div class="alert alert-warning py-2 mb-0">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        A gestão de usuários desse cliente para de funcionar imediatamente. O
+        aplicativo dele continua no ar, porque usa a configuração web e não esta
+        credencial. Para voltar atrás será preciso provisionar de novo, com o
+        JSON da conta de serviço.
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="fecharRemocao()"
+        [disabled]="removendo"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="confirmarRemocao()"
+        [disabled]="removendo"
+      >
+        <span *ngIf="removendo" class="loading me-2"></span>
+        {{ removendo ? 'Removendo...' : 'Remover' }}
+      </button>
+    </div>
+  </div>
+</div>

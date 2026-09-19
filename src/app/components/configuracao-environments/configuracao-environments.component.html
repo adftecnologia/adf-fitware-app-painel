@@ -1,0 +1,344 @@
+<div class="page-header mb-4">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h4 class="mb-0">
+        <i class="fas fa-sliders-h me-2"></i>
+        Environments provisionados
+      </h4>
+      <small class="text-muted">
+        Configuração web (client-side) do Firebase de cada tenant cliente.
+      </small>
+    </div>
+    <div class="col-md-4 text-md-end mt-2 mt-md-0">
+      <button type="button" class="btn btn-primary" (click)="abrirFormulario()">
+        <i class="fas fa-plus me-2"></i>
+        Novo environment
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="filters-container">
+  <div class="row">
+    <div class="col-md-6">
+      <label class="form-label">Buscar Tenant</label>
+      <div class="input-group">
+        <span class="input-group-text">
+          <i class="fas fa-search"></i>
+        </span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Digite o nome do tenant..."
+          [(ngModel)]="filtro"
+          (input)="aplicarFiltro()"
+          [disabled]="(carregandoEnvironments$ | async) === true"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-skeleton
+  *ngIf="carregandoEnvironments$ | async"
+  [isVisible]="true"
+  height="200px"
+  [shape]="'rounded'"
+  [animation]="'wave'"
+></app-skeleton>
+
+<div
+  *ngIf="!(carregandoEnvironments$ | async) && !environments.length"
+  class="alert alert-info"
+>
+  Nenhum environment provisionado ainda.
+</div>
+
+<div
+  *ngIf="
+    !(carregandoEnvironments$ | async) &&
+    environments.length &&
+    !environmentsFiltrados.length
+  "
+  class="alert alert-info"
+>
+  Nenhum environment encontrado com o filtro aplicado.
+</div>
+
+<div
+  *ngIf="!(carregandoEnvironments$ | async) && environmentsFiltrados.length"
+  class="table-container"
+>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col">Tenant</th>
+          <th scope="col">Projeto Firebase</th>
+          <th scope="col" class="d-none d-md-table-cell">Auth Domain</th>
+          <th scope="col" class="d-none d-md-table-cell">Atualizado em</th>
+          <th scope="col" class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of environmentsFiltrados">
+          <td>
+            <b>{{ item.tenant }}</b>
+          </td>
+          <td>{{ item.config.projectId }}</td>
+          <td class="d-none d-md-table-cell">{{ item.config.authDomain }}</td>
+          <td class="d-none d-md-table-cell">
+            {{ item.updatedAt | date: 'dd/MM/yyyy HH:mm' }}
+          </td>
+          <td class="p-2">
+            <div class="btn-group btn-group-sm d-flex d-md-inline-flex">
+              <button
+                type="button"
+                class="btn btn-outline-primary"
+                (click)="abrirEdicao(item)"
+                title="Editar"
+              >
+                <i class="fas fa-edit"></i>
+                <span class="d-none d-sm-inline ms-1">Editar</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-danger"
+                (click)="abrirRemocao(item)"
+                title="Remover"
+              >
+                <i class="fas fa-trash"></i>
+                <span class="d-none d-sm-inline ms-1">Remover</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal: novo/editar environment -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="mostrarFormulario"
+  (click)="fecharFormulario()"
+></div>
+<div class="modal-custom" *ngIf="mostrarFormulario">
+  <div class="modal-conteudo">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">
+        {{ isEdicao ? 'Editar environment' : 'Novo environment' }}
+      </h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharFormulario()"
+      ></button>
+    </div>
+
+    <form [formGroup]="environmentForm" (ngSubmit)="salvar()">
+      <div class="modal-corpo">
+        <div class="alert alert-info py-2">
+          <i class="fas fa-info-circle me-1"></i>
+          Esta é a configuração web (pública) do Firebase do tenant — a mesma
+          usada pelo app do cliente para inicializar o SDK no navegador.
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="tenant"
+            >Identificador (Tenant/subdomínio) *</label
+          >
+          <input
+            id="tenant"
+            type="text"
+            class="form-control"
+            formControlName="tenant"
+            placeholder="acme"
+            autocomplete="off"
+            [class.is-invalid]="tenant?.invalid && tenant?.touched"
+          />
+          <div class="form-text">
+            Apenas letras minúsculas, números e hífen. Deve corresponder ao
+            mesmo identificador usado na Configuração de Tenants.
+          </div>
+          <div class="invalid-feedback">
+            Informe um identificador válido (letras minúsculas, números e
+            hífen).
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="apiKey">apiKey *</label>
+            <input
+              id="apiKey"
+              type="text"
+              class="form-control"
+              formControlName="apiKey"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="authDomain">authDomain *</label>
+            <input
+              id="authDomain"
+              type="text"
+              class="form-control"
+              formControlName="authDomain"
+              placeholder="projeto.firebaseapp.com"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="projectId">projectId *</label>
+            <input
+              id="projectId"
+              type="text"
+              class="form-control"
+              formControlName="projectId"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="storageBucket"
+              >storageBucket *</label
+            >
+            <input
+              id="storageBucket"
+              type="text"
+              class="form-control"
+              formControlName="storageBucket"
+              placeholder="projeto.appspot.com"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="databaseURL">databaseURL *</label>
+            <input
+              id="databaseURL"
+              type="text"
+              class="form-control"
+              formControlName="databaseURL"
+              placeholder="https://projeto-default-rtdb.firebaseio.com"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="messagingSenderId"
+              >messagingSenderId *</label
+            >
+            <input
+              id="messagingSenderId"
+              type="text"
+              class="form-control"
+              formControlName="messagingSenderId"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="appId">appId *</label>
+            <input
+              id="appId"
+              type="text"
+              class="form-control"
+              formControlName="appId"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="measurementId"
+              >measurementId (opcional)</label
+            >
+            <input
+              id="measurementId"
+              type="text"
+              class="form-control"
+              formControlName="measurementId"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-rodape">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="fecharFormulario()"
+          [disabled]="salvando"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="salvando">
+          <span *ngIf="salvando" class="loading me-2"></span>
+          {{
+            salvando ? 'Salvando...' : isEdicao ? 'Salvar alterações' : 'Salvar'
+          }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: remover environment -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="environmentParaRemover"
+  (click)="fecharRemocao()"
+></div>
+<div class="modal-custom" *ngIf="environmentParaRemover">
+  <div class="modal-conteudo modal-conteudo-pequeno">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">Remover environment</h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharRemocao()"
+      ></button>
+    </div>
+
+    <div class="modal-corpo">
+      <p>
+        Remover a configuração web do tenant
+        <b>{{ environmentParaRemover.tenant }}</b> ({{
+          environmentParaRemover.config.projectId
+        }})?
+      </p>
+      <div class="alert alert-warning py-2 mb-0">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        O app desse tenant deixa de conseguir inicializar o Firebase no
+        navegador até que um novo environment seja provisionado.
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="fecharRemocao()"
+        [disabled]="removendo"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="confirmarRemocao()"
+        [disabled]="removendo"
+      >
+        <span *ngIf="removendo" class="loading me-2"></span>
+        {{ removendo ? 'Removendo...' : 'Remover' }}
+      </button>
+    </div>
+  </div>
+</div>

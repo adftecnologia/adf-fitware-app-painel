@@ -1,12 +1,7 @@
 import { Routes } from '@angular/router';
-import { ColaboradoresComponent } from './components/colaboradores/colaboradores.component';
-import { DashboardComponent } from './components/dashboard/dashboard.component';
-import { EscolasComponent } from './components/escolas/escolas.component';
-import { FornecedoresComponent } from './components/fornecedores/fornecedores.component';
-import { NotasFiscaisComponent } from './components/notas-fiscais/notas-fiscais.component';
-import { OrdemCompraComponent } from './components/ordem-compra/ordem-compra.component';
+import { ConfiguracaoEnvironmentsComponent } from './components/configuracao-environments/configuracao-environments.component';
+import { ConfiguracaoTenantComponent } from './components/configuracao-tenant/configuracao-tenant.component';
 import { PerfilUsuarioComponent } from './components/perfil-usuario/perfil-usuario.component';
-import { ProdutosComponent } from './components/produtos/produtos.component';
 import { UsuariosComponent } from './components/usuarios/usuarios.component';
 import { LayoutComponent } from './pages/layout/layout.component';
 import { LoginComponent } from './pages/login/login.component';
@@ -18,7 +13,7 @@ import { RoleGuard } from './shared/guards/roles/role.guard';
 export const routes: Routes = [
   {
     path: getRoutePath(ERoutes.DEFAULT),
-    redirectTo: getRoutePath(ERoutes.DASHBOARD),
+    redirectTo: getRoutePath(ERoutes.PERFIL_USUARIO),
     pathMatch: 'full',
   },
   {
@@ -31,31 +26,6 @@ export const routes: Routes = [
     component: LayoutComponent,
     canActivate: [AuthGuard],
     children: [
-      { path: getRoutePath(ERoutes.DASHBOARD), component: DashboardComponent },
-      {
-        path: getRoutePath(ERoutes.FORNECEDORES),
-        component: FornecedoresComponent,
-      },
-      {
-        path: getRoutePath(ERoutes.ESCOLAS),
-        component: EscolasComponent,
-      },
-      {
-        path: getRoutePath(ERoutes.PRODUTOS),
-        component: ProdutosComponent,
-      },
-      {
-        path: getRoutePath(ERoutes.COLABORADORES),
-        component: ColaboradoresComponent,
-      },
-      {
-        path: getRoutePath(ERoutes.ORDEM_COMPA),
-        component: OrdemCompraComponent,
-      },
-      {
-        path: getRoutePath(ERoutes.NOTAS_FISCAIS),
-        component: NotasFiscaisComponent,
-      },
       {
         path: getRoutePath(ERoutes.PERFIL_USUARIO),
         component: PerfilUsuarioComponent,
@@ -63,6 +33,16 @@ export const routes: Routes = [
       {
         path: getRoutePath(ERoutes.USUARIOS),
         component: UsuariosComponent,
+        canActivate: [RoleGuard],
+      },
+      {
+        path: getRoutePath(ERoutes.TENANTS),
+        component: ConfiguracaoTenantComponent,
+        canActivate: [RoleGuard],
+      },
+      {
+        path: getRoutePath(ERoutes.ENVIRONMENTS),
+        component: ConfiguracaoEnvironmentsComponent,
         canActivate: [RoleGuard],
       },
     ],

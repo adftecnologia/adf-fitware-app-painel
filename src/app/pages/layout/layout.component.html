@@ -12,7 +12,10 @@
       [class.mobile-show]="ui.sidebarVisible && ui.isMobile"
       [class.mobile-hide]="!ui.sidebarVisible && ui.isMobile"
     >
-      <div class="sidebar-header d-flex justify-content-center" [style.minHeight]="sidebarCollapsed ? '100px' : 'auto'">
+      <div
+        class="sidebar-header d-flex justify-content-center"
+        [style.minHeight]="sidebarCollapsed ? '100px' : 'auto'"
+      >
         <a
           href="#"
           class="sidebar-brand d-flex align-items-center justify-content-center"
@@ -21,14 +24,14 @@
         >
           <img
             src="/logo.png"
-            alt="Logo SGCA"
+            alt="Logo FitWare"
             class="me-2"
-            style="height: 100px; width: auto; object-fit: contain;"
+            style="height: 100px; width: auto; object-fit: contain"
           />
         </a>
       </div>
 
-      <ul class="sidebar-nav" style="overflow-y: auto;">
+      <ul class="sidebar-nav" style="overflow-y: auto">
         <li class="nav-item" *ngFor="let route of routes">
           <a
             class="nav-link"
@@ -80,6 +83,7 @@
           >
             <i class="fas fa-bars"></i>
           </button>
+          <h1 class="header-title">{{ pageTitle }}</h1>
         </div>
 
         <div class="user-menu">

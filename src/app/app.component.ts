@@ -3,12 +3,11 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { environment } from '../environments/environment';
 import { LoadingComponent } from './shared/components/loading/loading.component';
-import { PdfModalComponent } from './shared/components/pdf-modal/pdf-modal.component';
 import { LoadingService } from './shared/services/loading-service/loading.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CommonModule, LoadingComponent, PdfModalComponent],
+  imports: [RouterOutlet, CommonModule, LoadingComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
 })

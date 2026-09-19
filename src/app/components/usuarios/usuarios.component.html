@@ -404,7 +404,6 @@
                   placeholder="Selecione um perfil de acesso"
                   formControlName="role"
                   notFoundText="Nenhum perfil encontrado"
-                  (change)="limparArrayPermissoes()"
                   [class.is-invalid]="role?.invalid && role?.touched"
                 >
                   <!-- [disabled]="salvando" -->
@@ -444,162 +443,6 @@
             <!-- <div class="col-md-6">
               <div class="mb-3">&nbsp;</div>
             </div> -->
-
-            @if (isVisualizadorSelecionado) {
-              <div class="mb-3">
-                <label class="form-label">Indicantes *</label>
-                <div class="row">
-                  <div class="col-md-9 col-12">
-                    <ng-select
-                      [items]="indicantes"
-                      bindLabel="nome"
-                      placeholder="Selecione um indicante"
-                      notFoundText="Nenhum indicante encontrado"
-                      [(ngModel)]="selectIndicante"
-                      [ngModelOptions]="{ standalone: true }"
-                      [disabled]="hasTodosIndicantesSelecionados() || salvando"
-                      #selectIndicanteForm="ngModel"
-                      required
-                      [class.is-invalid]="
-                        selectIndicanteForm?.invalid &&
-                        selectIndicanteForm?.touched &&
-                        indicantesSelecionados.length === 0
-                      "
-                    >
-                    </ng-select>
-                    <div
-                      *ngIf="
-                        selectIndicanteForm?.invalid &&
-                        selectIndicanteForm?.touched &&
-                        indicantesSelecionados.length === 0
-                      "
-                      class="invalid-feedback d-block"
-                    >
-                      Indicante é obrigatório
-                    </div>
-                  </div>
-                  <div
-                    class="col-md-3 col-12 d-flex justify-content-center align-items-start"
-                  >
-                    <button
-                      type="button"
-                      class="btn btn-success"
-                      title="Adicionar Indicante"
-                      (click)="adicionarIndicantes()"
-                      [disabled]="
-                        !selectIndicante || !selectIndicante.nome || salvando
-                      "
-                    >
-                      <i class="fas fa-plus me-1"></i>
-                      Adicionar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            }
-
-            <div
-              class="col-md-12 indicantes-container"
-              *ngIf="indicantesSelecionados.length > 0"
-            >
-              <small class="text-muted">Indicantes adicionados:</small>
-              <div class="mb-3">
-                <div class="box-list-flex">
-                  <span
-                    class="badge item-badge"
-                    *ngFor="let indicante of indicantesSelecionados"
-                    [title]="indicante.nome"
-                  >
-                    <span class="item-badge-text">{{ indicante.nome }}</span>
-                    <button
-                      type="button"
-                      class="btn-close btn-close-white item-remove-btn"
-                      (click)="removerIndicante(indicante)"
-                      title="Remover Indicante"
-                      [disabled]="salvando"
-                    ></button>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            @if (isVisualizadorSelecionado) {
-              <div class="mb-3">
-                <label class="form-label">Secretarias *</label>
-                <div class="row">
-                  <div class="col-md-9 col-12">
-                    <ng-select
-                      [items]="secretarias"
-                      bindLabel="nome"
-                      placeholder="Selecione uma secretaria"
-                      notFoundText="Nenhuma secretaria encontrada"
-                      [(ngModel)]="selectSecretaria"
-                      [ngModelOptions]="{ standalone: true }"
-                      [disabled]="hasTodosSecretariasSelecionadas() || salvando"
-                      #selectSecretariaForm="ngModel"
-                      required
-                      [class.is-invalid]="
-                        selectSecretariaForm?.invalid &&
-                        selectSecretariaForm?.touched &&
-                        secretariasSelecionadas.length === 0
-                      "
-                    >
-                    </ng-select>
-                    <div
-                      *ngIf="
-                        selectSecretariaForm?.invalid &&
-                        selectSecretariaForm?.touched &&
-                        secretariasSelecionadas.length === 0
-                      "
-                      class="invalid-feedback d-block"
-                    >
-                      Secretaria é obrigatória
-                    </div>
-                  </div>
-                  <div
-                    class="col-md-3 col-12 d-flex justify-content-center align-items-start"
-                  >
-                    <button
-                      type="button"
-                      class="btn btn-success"
-                      title="Adicionar Secretaria"
-                      (click)="adicionarSecretarias()"
-                      [disabled]="
-                        !selectSecretaria || !selectSecretaria.nome || salvando
-                      "
-                    >
-                      <i class="fas fa-plus me-1"></i>
-                      Adicionar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            }
-
-            <div
-              class="col-md-12 secretarias-container"
-              *ngIf="secretariasSelecionadas.length > 0"
-            >
-              <small class="text-muted">Secretarias adicionadas:</small>
-              <div class="mb-3">
-                <div class="box-list-flex">
-                  <span
-                    class="badge item-badge"
-                    *ngFor="let secretaria of secretariasSelecionadas"
-                    [title]="secretaria.nome"
-                  >
-                    <span class="item-badge-text">{{ secretaria.nome }}</span>
-                    <button
-                      type="button"
-                      class="btn-close btn-close-white item-remove-btn"
-                      (click)="removerSecretaria(secretaria)"
-                      title="Remover Secretaria"
-                      [disabled]="salvando"
-                    ></button>
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -657,22 +500,6 @@
           Ao excluir o usuário ele irá aparecer na listagem ainda, porém ficará
           com o status de excluído.
         </p>
-
-        <!-- <div
-          *ngIf="usuarioParaExcluir?.qtdPessoasCadastradas || 0 > 0"
-          class="alert alert-warning"
-        >
-          <i class="fas fa-exclamation-triangle me-2"></i>
-          <strong>Atenção:</strong> Este usuário possui
-          {{ usuarioParaExcluir?.qtdPessoasCadastradas || 0 }}
-          pessoa(s) vinculada(s). A exclusão não será permitida.
-        </div> -->
-        <!-- <p
-          class="text-muted"
-          *ngIf="usuarioParaExcluir?.qtdPessoasCadastradas === 0"
-        >
-          Esta ação não pode ser desfeita.
-        </p> -->
       </div>
       <div class="modal-footer">
         <button

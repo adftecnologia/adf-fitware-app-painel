@@ -1,25 +1,17 @@
 export const environment = {
   production: false,
   stage: '',
-  domainApp: {
-    baseUrl: 'https://sisgca.adftecnologia.com.br',
-  },
   vercel: {
     isLocalUrl: false,
     baseUrl: '/api/routes',
   },
-  srvCatra: {
-    baseUrl: 'https://orcdev-cloud.adfcloud.com.br/srv-catra',
-    tenantId: 'TENANT_ID_PRODUTION_HERE',
-    apiKey: 'API_KEY_PRODUTION_HERE',
-  },
   firebase: {
-    apiKey: 'AIzaSyCDtWWgmwot-4wv5nJk1B55BxirnO2hRWc',
-    authDomain: 'sgp-ma.firebaseapp.com',
-    databaseURL: 'https://sgp-ma-default-rtdb.firebaseio.com',
-    projectId: 'sgp-ma',
-    storageBucket: 'sgp-ma.firebasestorage.app',
-    messagingSenderId: '732648300189',
-    appId: '1:732648300189:web:44036341b521f490ce3e74',
+    apiKey: 'AIzaSyAoGw9Pq0IU11cOZ_Cym_tAJmvgcoLUXzc',
+    authDomain: 'fitmanager-util.firebaseapp.com',
+    databaseURL: 'https://fitmanager-util-default-rtdb.firebaseio.com',
+    projectId: 'fitmanager-util',
+    storageBucket: 'fitmanager-util.firebasestorage.app',
+    messagingSenderId: '901527488346',
+    appId: '1:901527488346:web:3380b4b3116ecec11f1563',
   },
 };

@@ -10,7 +10,7 @@ export const RoleGuard: CanActivateFn = (route, state) => {
   const rota = route.routeConfig?.path ?? '';
 
   if (!featureToggle.hasPermissaoRotas(`/${rota}`)) {
-    router.navigate([ERoutes.DASHBOARD]);
+    router.navigate([ERoutes.PERFIL_USUARIO]);
     return false;
   }
   return true;
