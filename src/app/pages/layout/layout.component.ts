@@ -22,6 +22,7 @@ import { AuthService } from '../../shared/services/auth-service/auth.service';
 import { FeatureToggleService } from '../../shared/services/featuretoggle-service/featuretoggle.service';
 import { MobileDeviceService } from '../../shared/services/mobile-device/mobile-device.service';
 // import { FooterComponent } from './../../shared/components/footer/footer.component';
+import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { getUsernameAcronym } from './../../shared/functions/sistema.function';
 
 @Component({
@@ -33,7 +34,7 @@ import { getUsernameAcronym } from './../../shared/functions/sistema.function';
     RouterLink,
     RouterLinkActive,
     AlertContainerComponent,
-    // FooterComponent,
+    FooterComponent,
   ],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css',

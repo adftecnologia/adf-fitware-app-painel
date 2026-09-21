@@ -6,12 +6,13 @@ import {
   listEnvironmentConfigs,
   saveEnvironmentConfig,
   updateEnvironmentConfig,
-} from '../helper/environment-config.helper';
+} from '../../lib/helper/environment-config.helper';
+import { getGatewayStatusSummary } from '../../lib/helper/gateway-status.helper';
 import {
   EHttpMethod,
   EHttpStatusCode,
   HttpHelper,
-} from '../helper/sistema.helper';
+} from '../../lib/helper/sistema.helper';
 import {
   assertValidTenantName,
   deleteTenantServiceAccount,
@@ -21,8 +22,8 @@ import {
   saveTenantServiceAccount,
   TenantHelper,
   updateTenantDatabaseUrl,
-} from '../helper/tenant.helper';
-import { withErrorHandling } from '../middlewares/sistema.midd';
+} from '../../lib/helper/tenant.helper';
+import { withErrorHandling } from '../../lib/middlewares/sistema.midd';
 
 /**
  * Configuração de tenants e environments — painel interno, uso exclusivo da
@@ -46,12 +47,14 @@ import { withErrorHandling } from '../middlewares/sistema.midd';
  *   POST   X-Dev-Resource: environments        provisiona uma config
  *   PATCH  X-Dev-Resource: environments        atualiza uma config existente
  *   DELETE X-Dev-Resource: environments        remove uma config
+ *   GET    X-Dev-Resource: gateway-status      apura tenants c/ Mercado Pago ativo
  */
 
 export enum EDevResource {
   TENANTS = 'tenants',
   TENANT_CONNECTION = 'tenant-connection',
   ENVIRONMENTS = 'environments',
+  GATEWAY_STATUS = 'gateway-status',
 }
 
 /** Header que identifica o recurso alvo da requisição. */
@@ -352,6 +355,16 @@ async function handleDeleteEnvironment(
   });
 }
 
+async function handleGatewayStatus(res: VercelResponse): Promise<void> {
+  const summary = await getGatewayStatusSummary();
+
+  res.status(EHttpStatusCode.OK).json({
+    success: true,
+    message: 'Status de gateway apurado',
+    data: summary,
+  });
+}
+
 async function devConfigHandler(
   req: ITenantAuthenticatedRequest,
   res: VercelResponse
@@ -411,6 +424,13 @@ async function devConfigHandler(
     if (req.method === EHttpMethod.DELETE) {
       return await handleDeleteEnvironment(req, res);
     }
+  }
+
+  if (
+    recurso === EDevResource.GATEWAY_STATUS &&
+    req.method === EHttpMethod.GET
+  ) {
+    return await handleGatewayStatus(res);
   }
 
   // Os erros sobem para withErrorHandling, que preserva o status definido em

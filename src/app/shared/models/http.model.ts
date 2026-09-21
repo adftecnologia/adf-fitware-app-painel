@@ -54,3 +54,8 @@ export interface IEnvironmentsResponse {
 export interface IEnvironmentResponse {
   environment: IEnvironmentResumo;
 }
+
+export interface IGatewayStatusResponse {
+  total: number;
+  configurados: number;
+}

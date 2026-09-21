@@ -1,6 +1,7 @@
 export enum ERoutes {
   DEFAULT = '/',
   LOGIN = '/login',
+  DASHBOARD = '/dashboard',
   PERFIL_USUARIO = '/perfil-usuario',
   USUARIOS = '/usuarios',
   TENANTS = '/configuracao-tenant',

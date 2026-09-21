@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { ConfiguracaoEnvironmentsComponent } from './components/configuracao-environments/configuracao-environments.component';
 import { ConfiguracaoTenantComponent } from './components/configuracao-tenant/configuracao-tenant.component';
+import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { PerfilUsuarioComponent } from './components/perfil-usuario/perfil-usuario.component';
 import { UsuariosComponent } from './components/usuarios/usuarios.component';
 import { LayoutComponent } from './pages/layout/layout.component';
@@ -26,6 +27,11 @@ export const routes: Routes = [
     component: LayoutComponent,
     canActivate: [AuthGuard],
     children: [
+      {
+        path: getRoutePath(ERoutes.DASHBOARD),
+        component: DashboardComponent,
+        canActivate: [RoleGuard],
+      },
       {
         path: getRoutePath(ERoutes.PERFIL_USUARIO),
         component: PerfilUsuarioComponent,

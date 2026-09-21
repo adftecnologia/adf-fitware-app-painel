@@ -27,4 +27,5 @@ export enum EDevResource {
   TENANTS = 'tenants',
   TENANT_CONNECTION = 'tenant-connection',
   ENVIRONMENTS = 'environments',
+  GATEWAY_STATUS = 'gateway-status',
 }
