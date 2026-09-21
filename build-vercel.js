@@ -34,6 +34,8 @@ if (isProduction || ['main', 'master'].includes(gitBranch)) {
 console.log(`🚀 Iniciando build completo para ${environmentName}...`);
 
 try {
+  /// DESABILITADO POR HORA ////
+  /*
   // 1. Atualizar configurações de ambiente com valores da Vercel
   const tenantId = process.env.VERCEL_TENANT_ID;
   const apiKey = process.env.VERCEL_API_KEY;
@@ -72,7 +74,7 @@ try {
     throw new Error(
       `Variáveis de ambiente Vercel não encontradas. Configurar 'VERCEL_TENANT_ID' e 'VERCEL_API_KEY'`
     );
-  }
+  }*/
 
   // 1. Limpar diretório dist
   console.log('🧹 Limpando diretório dist...');
@@ -99,8 +101,7 @@ try {
 
   // Verificar se o build do Angular funcionou
   const angularOutputPath = 'dist/painel-configuracao-fitware';
-  const angularBrowserPath =
-    'dist/painel-configuracao-fitware/browser';
+  const angularBrowserPath = 'dist/painel-configuracao-fitware/browser';
 
   if (
     fs.existsSync(angularBrowserPath) &&
@@ -123,17 +124,13 @@ try {
 
   // 5. Estatísticas
   const apiFiles = getFileCount('dist/api');
-  const angularFiles = getFileCount(
-    'dist/painel-configuracao-fitware'
-  );
+  const angularFiles = getFileCount('dist/painel-configuracao-fitware');
 
   console.log(`\n📊 Estatísticas:`);
   console.log(`   API: ${apiFiles} arquivos compilados`);
   console.log(`   Angular: ${angularFiles} arquivos gerados`);
   console.log(`   Ambiente: ${environmentName}`);
-  console.log(
-    `   Output: dist/painel-configuracao-fitware/browser/index.html`
-  );
+  console.log(`   Output: dist/painel-configuracao-fitware/browser/index.html`);
 } catch (error) {
   console.error('\n❌ Erro no build:', error.message);
   console.error('\n🔧 Possíveis soluções:');
