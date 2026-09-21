@@ -8,6 +8,7 @@ export type IValidRoutes = Exclude<
 >;
 
 export const TITULO_LAYOUT: { [key in IValidRoutes]: string } = {
+  [ERoutes.DASHBOARD]: 'Dashboard',
   [ERoutes.PERFIL_USUARIO]: 'Meu Perfil',
   [ERoutes.USUARIOS]: 'Usuários do Painel',
   [ERoutes.TENANTS]: 'Configuração de Tenants',
@@ -15,6 +16,7 @@ export const TITULO_LAYOUT: { [key in IValidRoutes]: string } = {
 } as const;
 
 export const ICONES_LAYOUT: { [key in IValidRoutes]: string } = {
+  [ERoutes.DASHBOARD]: 'fa-tachometer-alt',
   [ERoutes.PERFIL_USUARIO]: 'fa-user-tie',
   [ERoutes.USUARIOS]: 'fa-users',
   [ERoutes.TENANTS]: 'fa-hdd',

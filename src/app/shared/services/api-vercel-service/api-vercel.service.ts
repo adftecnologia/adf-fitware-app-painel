@@ -21,6 +21,7 @@ import { LoadingService } from '../loading-service/loading.service';
 import {
   IEnvironmentResponse,
   IEnvironmentsResponse,
+  IGatewayStatusResponse,
   IHttpResponse,
   ITenantResponse,
   ITenantsResponse,
@@ -354,6 +355,20 @@ export class ApiVercelService {
       options: {
         body: { tenant },
         headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.ENVIRONMENTS },
+      },
+    });
+  }
+
+  public getStatusGateway(
+    disabledLoading = false
+  ): Observable<IHttpResponse<IGatewayStatusResponse>> {
+    return this.createRequest<IGatewayStatusResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      options: {
+        headers: {
+          [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GATEWAY_STATUS,
+        },
       },
     });
   }

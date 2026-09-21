@@ -10,11 +10,11 @@ import SistemaHelper, {
   IAuthenticatedRequest,
   ICreateUserRequest,
   IUserProfile,
-} from '../helper/sistema.helper';
+} from '../../lib/helper/sistema.helper';
 import {
   generateErrorResponse,
   withErrorHandling,
-} from '../middlewares/sistema.midd';
+} from '../../lib/middlewares/sistema.midd';
 
 async function updateUsersHandler(
   req: IAuthenticatedRequest,

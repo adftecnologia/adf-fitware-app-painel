@@ -16,8 +16,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:api": "npm run build:api && echo 'API build successful - no test runner configured'",
-    "format": "prettier --write \"src/**/*.{ts,html,css,scss,json}\" \"api/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.{ts,html,css,scss,json}\" \"api/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.{ts,html,css,scss,json}\" \"api/**/*.ts\" \"lib/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.{ts,html,css,scss,json}\" \"api/**/*.ts\" \"lib/**/*.ts\"",
     "type-check": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project api/tsconfig.json",
     "lint:api": "tsc --noEmit --project api/tsconfig.json"
   },
