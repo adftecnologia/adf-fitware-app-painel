@@ -11,7 +11,12 @@
       </small>
     </div>
     <div class="col-md-4 text-md-end mt-2 mt-md-0">
-      <button type="button" class="btn btn-primary" (click)="abrirFormulario()">
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="abrirFormulario()"
+        [disabled]="(carregandoTenants$ | async) === true"
+      >
         <i class="fas fa-plus me-2"></i>
         Provisionar tenant
       </button>
@@ -48,33 +53,13 @@
   [animation]="'wave'"
 ></app-skeleton>
 
-<div
-  *ngIf="!(carregandoTenants$ | async) && !tenants.length"
-  class="alert alert-info"
->
-  Nenhum tenant provisionado ainda.
-</div>
-
-<div
-  *ngIf="
-    !(carregandoTenants$ | async) && tenants.length && !tenantsFiltrados.length
-  "
-  class="alert alert-info"
->
-  Nenhum tenant encontrado com o filtro aplicado.
-</div>
-
-<div
-  *ngIf="!(carregandoTenants$ | async) && tenantsFiltrados.length"
-  class="table-container"
->
+<div *ngIf="!(carregandoTenants$ | async)" class="table-container">
   <div class="table-responsive">
     <table class="table table-hover align-middle">
       <thead>
         <tr>
           <th scope="col">Tenant</th>
           <th scope="col">Projeto Firebase</th>
-          <th scope="col" class="d-none d-md-table-cell">Conta de serviço</th>
           <th scope="col" class="d-none d-md-table-cell">Atualizado em</th>
           <th scope="col" class="text-end">Ações</th>
         </tr>
@@ -85,12 +70,6 @@
             <b>{{ item.tenant }}</b>
           </td>
           <td>{{ item.projectId }}</td>
-          <td
-            class="d-none d-md-table-cell coluna-conta"
-            [title]="item.clientEmail"
-          >
-            {{ item.clientEmail }}
-          </td>
           <td class="d-none d-md-table-cell">
             {{ item.updatedAt | date: 'dd/MM/yyyy HH:mm' }}
           </td>
@@ -131,6 +110,37 @@
                 <i class="fas fa-trash"></i>
                 <span class="d-none d-sm-inline ms-1">Remover</span>
               </button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Estado vazio dentro da própria tabela, como na tela de Usuários. -->
+        <tr *ngIf="!tenantsFiltrados.length">
+          <td colspan="3" class="d-md-none text-center text-muted py-4">
+            <div class="empty-state-mobile">
+              <i class="fas fa-inbox fa-lg mb-2"></i>
+              <br />
+              <small>
+                {{
+                  filtro
+                    ? 'Nenhum tenant encontrado'
+                    : 'Nenhum tenant provisionado'
+                }}
+              </small>
+            </div>
+          </td>
+          <td
+            colspan="4"
+            class="d-none d-md-table-cell text-center text-muted py-4"
+          >
+            <div class="empty-state-desktop">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <br />
+              {{
+                filtro
+                  ? 'Nenhum tenant encontrado com o filtro aplicado'
+                  : 'Nenhum tenant provisionado ainda'
+              }}
             </div>
           </td>
         </tr>

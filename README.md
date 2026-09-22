@@ -333,7 +333,9 @@ Se encontrar erros de CORS, verifique:
 
 - **[Validação de Telefone](docs/VALIDACAO_TELEFONE.md)** - Documentação completa da implementação de máscara e validação de telefone
 
-- **[Configuração e Regras do Firebase](docs/FIREBASE_REGRAS_E_CONFIG.md)** - Guia para criar o projeto Firebase, ativar Realtime Database, regras e Authentication
+- **[Criação Automatizada de Projetos](docs/CRIACAO_AUTOMATIZADA_PROJETOS.md)** - Guia operacional da área "Criar Projeto": configuração do OAuth, spike de validação, as 8 etapas do provisionamento, riscos e troubleshooting
+
+- **[Configuração e Regras do Firebase](docs/FIREBASE_REGRAS_E_CONFIG.md)** - Guia para criar o projeto Firebase, ativar Realtime Database, regras e Authentication (processo manual, equivalente ao que a criação automatizada faz)
 
 - **[Regras de Segurança Firebase](docs/FIREBASE_SECURITY_RULES.md)** - Regras avançadas de segurança, validação de dados, controle de acesso e auditoria para Firebase
 

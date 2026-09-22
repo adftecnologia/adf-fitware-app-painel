@@ -36,6 +36,10 @@ export class ConfiguracaoEnvironmentsComponent implements OnInit {
   public environmentEditando: IEnvironmentResumo | null = null;
   public environmentParaRemover: IEnvironmentResumo | null = null;
 
+  /** Tenant aguardando confirmação para ser habilitado ou desabilitado. */
+  public environmentParaAlternar: IEnvironmentResumo | null = null;
+  public alternandoStatus = false;
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly alertService: AlertService,
@@ -224,6 +228,53 @@ export class ConfiguracaoEnvironmentsComponent implements OnInit {
             error?.error ||
               error?.message ||
               'Não foi possível remover o environment',
+            'Erro'
+          );
+        },
+      });
+  }
+
+  /// HABILITAR E DESABILITAR ///
+
+  public abrirAlternarStatus(item: IEnvironmentResumo): void {
+    this.environmentParaAlternar = item;
+  }
+
+  public fecharAlternarStatus(): void {
+    this.environmentParaAlternar = null;
+  }
+
+  public confirmarAlternarStatus(): void {
+    const item = this.environmentParaAlternar;
+
+    if (!item) {
+      return;
+    }
+
+    this.alternandoStatus = true;
+
+    this.apiVercelService
+      .alternarStatusEnvironment({
+        tenant: item.tenant,
+        // Manda o estado desejado, não um "inverta": se a lista estiver
+        // desatualizada, o backend recusa dizendo que já está assim, em vez de
+        // alternar para o lado errado.
+        habilitar: !item.habilitado,
+      })
+      .subscribe({
+        next: ({ message }) => {
+          this.alternandoStatus = false;
+          this.fecharAlternarStatus();
+          this.alertService.success(message || 'Status alterado', 'Sucesso');
+          this.carregarEnvironments();
+        },
+        error: error => {
+          this.alternandoStatus = false;
+          this.fecharAlternarStatus();
+          this.alertService.error(
+            error?.error ||
+              error?.message ||
+              'Não foi possível alterar o status do tenant',
             'Erro'
           );
         },
