@@ -23,9 +23,17 @@ export enum EHttpHeaders {
   X_DEV_RESOURCE = 'X-Dev-Resource',
 }
 
+/**
+ * Espelho de EDevResource em api/routes/dev-config.ts. Não há módulo
+ * compartilhado entre o bundle do Angular e o das funções, então um recurso
+ * novo precisa ser declarado nos dois lugares.
+ */
 export enum EDevResource {
   TENANTS = 'tenants',
   TENANT_CONNECTION = 'tenant-connection',
   ENVIRONMENTS = 'environments',
   GATEWAY_STATUS = 'gateway-status',
+  GOOGLE_OAUTH = 'google-oauth',
+  PROJECT_PROVISION = 'project-provision',
+  ENVIRONMENT_STATUS = 'environment-status',
 }

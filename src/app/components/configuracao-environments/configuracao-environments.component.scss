@@ -1,3 +1,12 @@
+/* Estado vazio dentro da tabela — mesmo tratamento da tela de Usuários. */
+.empty-state-desktop {
+  padding: 2rem 0;
+}
+
+.empty-state-mobile {
+  padding: 1.5rem 0;
+}
+
 .modal-backdrop-custom {
   position: fixed;
   inset: 0;

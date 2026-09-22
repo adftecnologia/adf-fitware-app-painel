@@ -38,7 +38,13 @@ export class CepMaskDirective implements OnInit {
       return;
     }
 
-    const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'];
+    const allowedKeys = [
+      'Backspace',
+      'Delete',
+      'ArrowLeft',
+      'ArrowRight',
+      'Tab',
+    ];
     if (allowedKeys.includes(event.key)) {
       return;
     }

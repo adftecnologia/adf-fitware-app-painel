@@ -3,6 +3,17 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
   "outputDirectory": "dist/painel-configuracao-fitware/browser",
+  "functions": {
+    "api/routes/dev-config.ts": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/routes/cron-oauth-keepalive",
+      "schedule": "0 4 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/routes/(.*)",

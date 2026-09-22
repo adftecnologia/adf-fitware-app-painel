@@ -62,6 +62,13 @@ export enum EConfigFirebaseEnv {
 
 export enum EConfigCollection {
   SERVICE_ACCOUNTS = 'clientes/serviceAccounts',
+  /**
+   * Índice reverso projectId -> tenant, mantido pelo ponto-eletrônico para
+   * descobrir a qual tenant pertence um token (cujo `aud` é o projectId).
+   * Este painel é quem cria e remove tenants, então é ele quem precisa manter
+   * o índice em dia.
+   */
+  TENANT_BY_PROJECT_ID = 'clientes/tenantByProjectId',
 }
 
 /// FIM - ENUMS ///
@@ -350,6 +357,18 @@ export async function saveTenantServiceAccount({
 }): Promise<ITenantSummary> {
   assertValidTenantName(tenant);
 
+  const database = getDatabase(getConfigApp());
+  const referencia = database.ref(
+    `${EConfigCollection.SERVICE_ACCOUNTS}/${tenant}`
+  );
+
+  // Lido antes da escrita para descobrir se o projectId mudou — trocar a
+  // credencial por uma de outro projeto deixaria o índice antigo apontando
+  // para um projeto que não é mais deste tenant.
+  const anterior = (
+    await referencia.once('value')
+  ).val() as ITenantServiceAccount | null;
+
   const record: ITenantServiceAccount = {
     projectId,
     clientEmail,
@@ -361,9 +380,17 @@ export async function saveTenantServiceAccount({
     updatedAt: new Date().toISOString(),
   };
 
-  await getDatabase(getConfigApp())
-    .ref(`${EConfigCollection.SERVICE_ACCOUNTS}/${tenant}`)
-    .set(record);
+  await referencia.set(record);
+
+  if (anterior?.projectId && anterior.projectId !== projectId) {
+    await database
+      .ref(`${EConfigCollection.TENANT_BY_PROJECT_ID}/${anterior.projectId}`)
+      .remove();
+  }
+
+  await database
+    .ref(`${EConfigCollection.TENANT_BY_PROJECT_ID}/${projectId}`)
+    .set(tenant);
 
   await invalidateTenantContext(tenant);
 
@@ -426,7 +453,8 @@ export async function deleteTenantServiceAccount(
 ): Promise<ITenantSummary> {
   assertValidTenantName(tenant);
 
-  const referencia = getDatabase(getConfigApp()).ref(
+  const database = getDatabase(getConfigApp());
+  const referencia = database.ref(
     `${EConfigCollection.SERVICE_ACCOUNTS}/${tenant}`
   );
 
@@ -438,6 +466,15 @@ export async function deleteTenantServiceAccount(
   }
 
   await referencia.remove();
+
+  if (serviceAccount.projectId) {
+    await database
+      .ref(
+        `${EConfigCollection.TENANT_BY_PROJECT_ID}/${serviceAccount.projectId}`
+      )
+      .remove();
+  }
+
   await invalidateTenantContext(tenant);
 
   return {
