@@ -24,18 +24,34 @@ export interface IFirebaseConfigCliente {
  */
 export type IEnvironmentRecord = IFirebaseConfigCliente & {
   updatedAt?: string;
+  /** Presentes apenas no nó de desabilitados. */
+  desabilitadoEm?: string;
+  desabilitadoPor?: string;
 };
 
 export interface IEnvironmentSummary {
   tenant: string;
   config: IFirebaseConfigCliente;
   updatedAt?: string;
+  /** Falso quando o tenant está no nó de desabilitados. */
+  habilitado: boolean;
+  desabilitadoEm?: string;
+  desabilitadoPor?: string;
 }
 
 ///FIM - MODELS///
 
 export enum EEnvironmentConfigCollection {
   FIREBASE_CONFIGS = 'clientes/firebaseConfigs',
+  /**
+   * Tenants desabilitados.
+   *
+   * Desabilitar é tirar o tenant de `firebaseConfigs`, porque o app do cliente
+   * lê esse nó no boot e sem ele não inicializa o Firebase. Mover em vez de
+   * apagar é o que torna a ação reversível: reabilitar devolve exatamente a
+   * mesma configuração, sem depender de reler nada do Google.
+   */
+  FIREBASE_CONFIGS_DESABILITADOS = 'clientes/firebaseConfigsDesabilitados',
 }
 
 const REQUIRED_CONFIG_FIELDS: (keyof IFirebaseConfigCliente)[] = [
@@ -51,6 +67,12 @@ const REQUIRED_CONFIG_FIELDS: (keyof IFirebaseConfigCliente)[] = [
 const notFoundError = (message: string): Error => {
   const error: any = new Error(message);
   error.status = EHttpStatusCode.NOT_FOUND;
+  return error;
+};
+
+const badRequestError = (message: string): Error => {
+  const error: any = new Error(message);
+  error.status = EHttpStatusCode.BAD_REQUEST;
   return error;
 };
 
@@ -77,24 +99,53 @@ export function assertValidFirebaseConfigCliente(
   }
 }
 
-/** Lista os environments (configurações Firebase client-side) provisionados. */
+/** Desmonta o registro gravado (config solta na raiz) nos campos do resumo. */
+const montarResumo = (
+  tenant: string,
+  record: IEnvironmentRecord,
+  habilitado: boolean
+): IEnvironmentSummary => {
+  const { updatedAt, desabilitadoEm, desabilitadoPor, ...config } =
+    record ?? ({} as IEnvironmentRecord);
+
+  return {
+    tenant,
+    config: config as IFirebaseConfigCliente,
+    updatedAt,
+    habilitado,
+    ...(desabilitadoEm ? { desabilitadoEm } : {}),
+    ...(desabilitadoPor ? { desabilitadoPor } : {}),
+  };
+};
+
+const lerNo = async (
+  colecao: EEnvironmentConfigCollection
+): Promise<Record<string, IEnvironmentRecord>> => {
+  const snapshot = await getDatabase(getConfigApp()).ref(colecao).once('value');
+  return (snapshot.val() ?? {}) as Record<string, IEnvironmentRecord>;
+};
+
+/**
+ * Lista os environments, habilitados e desabilitados.
+ *
+ * Os dois nós entram na mesma lista de propósito: um tenant desabilitado sai
+ * de `firebaseConfigs`, e se a listagem olhasse só para lá ele sumiria da tela
+ * — sem caminho para reabilitar.
+ */
 export async function listEnvironmentConfigs(): Promise<IEnvironmentSummary[]> {
-  const snapshot = await getDatabase(getConfigApp())
-    .ref(EEnvironmentConfigCollection.FIREBASE_CONFIGS)
-    .once('value');
+  const [habilitados, desabilitados] = await Promise.all([
+    lerNo(EEnvironmentConfigCollection.FIREBASE_CONFIGS),
+    lerNo(EEnvironmentConfigCollection.FIREBASE_CONFIGS_DESABILITADOS),
+  ]);
 
-  const value = (snapshot.val() ?? {}) as Record<string, IEnvironmentRecord>;
-
-  return Object.entries(value)
-    .map(([tenant, record]) => {
-      const { updatedAt, ...config } = record ?? ({} as IEnvironmentRecord);
-      return {
-        tenant,
-        config: config as IFirebaseConfigCliente,
-        updatedAt,
-      };
-    })
-    .sort((a, b) => a.tenant.localeCompare(b.tenant));
+  return [
+    ...Object.entries(habilitados).map(([tenant, record]) =>
+      montarResumo(tenant, record, true)
+    ),
+    ...Object.entries(desabilitados).map(([tenant, record]) =>
+      montarResumo(tenant, record, false)
+    ),
+  ].sort((a, b) => a.tenant.localeCompare(b.tenant));
 }
 
 /** Grava (ou substitui) a configuração Firebase client-side de um tenant. */
@@ -112,7 +163,7 @@ export async function saveEnvironmentConfig(
     .ref(`${EEnvironmentConfigCollection.FIREBASE_CONFIGS}/${tenant}`)
     .set(record);
 
-  return { tenant, config, updatedAt };
+  return { tenant, config, updatedAt, habilitado: true };
 }
 
 /** Atualiza a configuração Firebase client-side de um tenant já provisionado. */
@@ -140,29 +191,114 @@ export async function updateEnvironmentConfig(
   // antigos que não fazem mais parte do config atual.
   await referencia.set(record);
 
-  return { tenant, config, updatedAt };
+  return { tenant, config, updatedAt, habilitado: true };
 }
 
-/** Remove a configuração Firebase client-side de um tenant. */
+/**
+ * Remove a configuração Firebase client-side de um tenant, esteja ele
+ * habilitado ou desabilitado — senão um tenant desabilitado ficaria sem forma
+ * de ser excluído pela interface.
+ */
 export async function deleteEnvironmentConfig(
   tenant: string
 ): Promise<IEnvironmentSummary> {
   assertValidTenantName(tenant);
 
-  const referencia = getDatabase(getConfigApp()).ref(
-    `${EEnvironmentConfigCollection.FIREBASE_CONFIGS}/${tenant}`
-  );
+  const database = getDatabase(getConfigApp());
 
-  const snapshot = await referencia.once('value');
-  const record = snapshot.val() as IEnvironmentRecord | null;
+  for (const [colecao, habilitado] of [
+    [EEnvironmentConfigCollection.FIREBASE_CONFIGS, true],
+    [EEnvironmentConfigCollection.FIREBASE_CONFIGS_DESABILITADOS, false],
+  ] as const) {
+    const referencia = database.ref(`${colecao}/${tenant}`);
+    const record = (
+      await referencia.once('value')
+    ).val() as IEnvironmentRecord | null;
+
+    if (record) {
+      await referencia.remove();
+      return montarResumo(tenant, record, habilitado);
+    }
+  }
+
+  throw notFoundError(`Environment do tenant "${tenant}" não encontrado.`);
+}
+
+/// HABILITAR E DESABILITAR ///
+
+/**
+ * Move a configuração entre os nós de habilitados e desabilitados.
+ *
+ * O efeito prático de desabilitar: o app do cliente lê
+ * `clientes/firebaseConfigs/{tenant}` no boot e, sem esse nó, não consegue
+ * inicializar o Firebase — cai na tela de ambiente não encontrado. O projeto no
+ * Google, a credencial do painel e os dados do tenant continuam intactos.
+ */
+async function moverEnvironment({
+  tenant,
+  habilitar,
+  porEmail,
+}: {
+  tenant: string;
+  habilitar: boolean;
+  porEmail?: string;
+}): Promise<IEnvironmentSummary> {
+  assertValidTenantName(tenant);
+
+  const database = getDatabase(getConfigApp());
+
+  const origem = habilitar
+    ? EEnvironmentConfigCollection.FIREBASE_CONFIGS_DESABILITADOS
+    : EEnvironmentConfigCollection.FIREBASE_CONFIGS;
+
+  const destino = habilitar
+    ? EEnvironmentConfigCollection.FIREBASE_CONFIGS
+    : EEnvironmentConfigCollection.FIREBASE_CONFIGS_DESABILITADOS;
+
+  const referenciaOrigem = database.ref(`${origem}/${tenant}`);
+  const record = (
+    await referenciaOrigem.once('value')
+  ).val() as IEnvironmentRecord | null;
 
   if (!record) {
+    // Distingue "não existe" de "já está no estado pedido", porque a ação a
+    // tomar é diferente em cada caso.
+    const jaNoDestino = (
+      await database.ref(`${destino}/${tenant}`).once('value')
+    ).exists();
+
+    if (jaNoDestino) {
+      throw badRequestError(
+        `O tenant "${tenant}" já está ${habilitar ? 'habilitado' : 'desabilitado'}.`
+      );
+    }
+
     throw notFoundError(`Environment do tenant "${tenant}" não encontrado.`);
   }
 
-  await referencia.remove();
+  const { desabilitadoEm, desabilitadoPor, ...resto } = record;
 
-  const { updatedAt, ...config } = record;
+  const novoRecord: IEnvironmentRecord = habilitar
+    ? resto
+    : {
+        ...resto,
+        desabilitadoEm: new Date().toISOString(),
+        ...(porEmail ? { desabilitadoPor: porEmail } : {}),
+      };
 
-  return { tenant, config: config as IFirebaseConfigCliente, updatedAt };
+  await database.ref(`${destino}/${tenant}`).set(novoRecord);
+  await referenciaOrigem.remove();
+
+  return montarResumo(tenant, novoRecord, habilitar);
 }
+
+export const habilitarEnvironment = (
+  tenant: string
+): Promise<IEnvironmentSummary> =>
+  moverEnvironment({ tenant, habilitar: true });
+
+export const desabilitarEnvironment = (
+  tenant: string,
+  porEmail?: string
+): Promise<IEnvironmentSummary> =>
+  moverEnvironment({ tenant, habilitar: false, porEmail });

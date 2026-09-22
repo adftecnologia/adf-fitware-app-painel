@@ -10,7 +10,12 @@
       </small>
     </div>
     <div class="col-md-4 text-md-end mt-2 mt-md-0">
-      <button type="button" class="btn btn-primary" (click)="abrirFormulario()">
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="abrirFormulario()"
+        [disabled]="(carregandoEnvironments$ | async) === true"
+      >
         <i class="fas fa-plus me-2"></i>
         Novo environment
       </button>
@@ -47,35 +52,14 @@
   [animation]="'wave'"
 ></app-skeleton>
 
-<div
-  *ngIf="!(carregandoEnvironments$ | async) && !environments.length"
-  class="alert alert-info"
->
-  Nenhum environment provisionado ainda.
-</div>
-
-<div
-  *ngIf="
-    !(carregandoEnvironments$ | async) &&
-    environments.length &&
-    !environmentsFiltrados.length
-  "
-  class="alert alert-info"
->
-  Nenhum environment encontrado com o filtro aplicado.
-</div>
-
-<div
-  *ngIf="!(carregandoEnvironments$ | async) && environmentsFiltrados.length"
-  class="table-container"
->
+<div *ngIf="!(carregandoEnvironments$ | async)" class="table-container">
   <div class="table-responsive">
     <table class="table table-hover align-middle">
       <thead>
         <tr>
           <th scope="col">Tenant</th>
           <th scope="col">Projeto Firebase</th>
-          <th scope="col" class="d-none d-md-table-cell">Auth Domain</th>
+          <th scope="col">Status</th>
           <th scope="col" class="d-none d-md-table-cell">Atualizado em</th>
           <th scope="col" class="text-end">Ações</th>
         </tr>
@@ -86,7 +70,22 @@
             <b>{{ item.tenant }}</b>
           </td>
           <td>{{ item.config.projectId }}</td>
-          <td class="d-none d-md-table-cell">{{ item.config.authDomain }}</td>
+          <td>
+            <span class="badge bg-success" *ngIf="item.habilitado">
+              Habilitado
+            </span>
+            <span
+              class="badge bg-secondary"
+              *ngIf="!item.habilitado"
+              [title]="
+                item.desabilitadoEm
+                  ? 'Desabilitado em ' + item.desabilitadoEm
+                  : 'Desabilitado'
+              "
+            >
+              Desabilitado
+            </span>
+          </td>
           <td class="d-none d-md-table-cell">
             {{ item.updatedAt | date: 'dd/MM/yyyy HH:mm' }}
           </td>
@@ -96,10 +95,36 @@
                 type="button"
                 class="btn btn-outline-primary"
                 (click)="abrirEdicao(item)"
-                title="Editar"
+                [disabled]="!item.habilitado"
+                [title]="
+                  item.habilitado
+                    ? 'Editar'
+                    : 'Habilite o tenant para poder editar a configuração'
+                "
               >
                 <i class="fas fa-edit"></i>
                 <span class="d-none d-sm-inline ms-1">Editar</span>
+              </button>
+              <button
+                type="button"
+                class="btn"
+                [class.btn-outline-secondary]="item.habilitado"
+                [class.btn-outline-success]="!item.habilitado"
+                (click)="abrirAlternarStatus(item)"
+                [title]="
+                  item.habilitado
+                    ? 'Desabilitar: o app do cliente deixa de inicializar'
+                    : 'Habilitar: devolve a configuração e o app volta a funcionar'
+                "
+              >
+                <i
+                  class="fas"
+                  [class.fa-toggle-on]="item.habilitado"
+                  [class.fa-toggle-off]="!item.habilitado"
+                ></i>
+                <span class="d-none d-sm-inline ms-1">
+                  {{ item.habilitado ? 'Desabilitar' : 'Habilitar' }}
+                </span>
               </button>
               <button
                 type="button"
@@ -110,6 +135,37 @@
                 <i class="fas fa-trash"></i>
                 <span class="d-none d-sm-inline ms-1">Remover</span>
               </button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Estado vazio dentro da própria tabela, como na tela de Usuários. -->
+        <tr *ngIf="!environmentsFiltrados.length">
+          <td colspan="4" class="d-md-none text-center text-muted py-4">
+            <div class="empty-state-mobile">
+              <i class="fas fa-inbox fa-lg mb-2"></i>
+              <br />
+              <small>
+                {{
+                  filtro
+                    ? 'Nenhum environment encontrado'
+                    : 'Nenhum environment provisionado'
+                }}
+              </small>
+            </div>
+          </td>
+          <td
+            colspan="5"
+            class="d-none d-md-table-cell text-center text-muted py-4"
+          >
+            <div class="empty-state-desktop">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <br />
+              {{
+                filtro
+                  ? 'Nenhum environment encontrado com o filtro aplicado'
+                  : 'Nenhum environment provisionado ainda'
+              }}
             </div>
           </td>
         </tr>
@@ -286,6 +342,88 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Modal: habilitar / desabilitar tenant -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="environmentParaAlternar"
+  (click)="fecharAlternarStatus()"
+></div>
+<div class="modal-custom" *ngIf="environmentParaAlternar as alvo">
+  <div class="modal-conteudo modal-conteudo-pequeno">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">
+        {{ alvo.habilitado ? 'Desabilitar tenant' : 'Habilitar tenant' }}
+      </h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharAlternarStatus()"
+      ></button>
+    </div>
+
+    <div class="modal-corpo">
+      <p>
+        {{ alvo.habilitado ? 'Desabilitar' : 'Habilitar' }} o tenant
+        <b>{{ alvo.tenant }}</b> ({{ alvo.config.projectId }})?
+      </p>
+
+      <div class="alert alert-danger py-2 mb-0" *ngIf="alvo.habilitado">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        <b>O app desse cliente sai do ar.</b> Ele lê a configuração no boot, e
+        sem ela não consegue inicializar o Firebase — quem acessar verá a tela
+        de ambiente não encontrado.
+        <span class="d-block mt-2">
+          O projeto no Google, os dados do tenant e a credencial do painel
+          continuam intactos. A configuração é guardada e volta igual ao
+          habilitar.
+        </span>
+      </div>
+
+      <div class="alert alert-success py-2 mb-0" *ngIf="!alvo.habilitado">
+        <i class="fas fa-check-circle me-1"></i>
+        A configuração volta exatamente como estava e o app do cliente torna a
+        inicializar normalmente.
+        <span class="d-block mt-2 text-muted" *ngIf="alvo.desabilitadoEm">
+          Desabilitado em
+          {{ alvo.desabilitadoEm | date: 'dd/MM/yyyy HH:mm' }}
+          <ng-container *ngIf="alvo.desabilitadoPor">
+            por {{ alvo.desabilitadoPor }}
+          </ng-container>
+        </span>
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="fecharAlternarStatus()"
+        [disabled]="alternandoStatus"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn"
+        [class.btn-danger]="alvo.habilitado"
+        [class.btn-success]="!alvo.habilitado"
+        (click)="confirmarAlternarStatus()"
+        [disabled]="alternandoStatus"
+      >
+        <span *ngIf="alternandoStatus" class="loading me-2"></span>
+        {{
+          alternandoStatus
+            ? 'Aplicando...'
+            : alvo.habilitado
+              ? 'Desabilitar'
+              : 'Habilitar'
+        }}
+      </button>
+    </div>
   </div>
 </div>
 

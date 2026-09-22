@@ -113,6 +113,8 @@ export enum EHttpStatusCode {
   OK = 200,
   CREATED = 201,
   NO_CONTENT = 204,
+  /** Usado no retorno do consentimento OAuth, que devolve o navegador ao painel. */
+  FOUND = 302,
   BAD_REQUEST = 400,
   UNAUTHORIZED = 401,
   FORBIDDEN = 403,

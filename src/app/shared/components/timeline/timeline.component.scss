@@ -1,0 +1,156 @@
+/**
+ * Timeline vertical, no espírito da do MDBootstrap, porém construída só com
+ * Bootstrap 5 + Font Awesome e as variáveis do design system em styles.css —
+ * sem trazer CSS de biblioteca externa para o bundle.
+ */
+
+$marcador: 2rem;
+$coluna: 1rem; // centro do marcador em relação à borda esquerda
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 calc(#{$coluna} + #{$marcador} / 2 + 0.75rem);
+  position: relative;
+}
+
+/* A linha contínua que liga os marcadores. */
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: $coluna;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 2px;
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 1.25rem;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-marcador {
+  position: absolute;
+  /*
+   * O item começa na borda do padding da lista, então recuar o marcador em
+   * ($marcador + 0.75rem) deixa o centro dele exatamente sobre a linha —
+   * derivado do padding-left de .timeline, não ajustado no olho.
+   */
+  left: calc(-1 * (#{$marcador} + 0.75rem));
+  top: 0;
+  width: $marcador;
+  height: $marcador;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #ffffff;
+  background: #cbd5e1;
+  /* Cobre a linha por baixo, para o marcador não ficar "atravessado". */
+  box-shadow: 0 0 0 4px #ffffff;
+}
+
+.timeline-marcador[data-estado='sucesso'] {
+  background: var(--success-color);
+}
+
+.timeline-marcador[data-estado='erro'] {
+  background: var(--danger-color);
+}
+
+.timeline-marcador[data-estado='manual'] {
+  background: var(--warning-color);
+}
+
+.timeline-marcador[data-estado='em-andamento'] {
+  background: var(--primary-color);
+}
+
+.timeline-marcador[data-estado='pendente'] {
+  background: #ffffff;
+  color: #94a3b8;
+  border: 2px solid #cbd5e1;
+}
+
+.timeline-conteudo {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--border-radius);
+  padding: 0.75rem 1rem;
+}
+
+.timeline-item[data-estado='pendente'] .timeline-conteudo {
+  background: transparent;
+  border-style: dashed;
+}
+
+.timeline-item[data-estado='erro'] .timeline-conteudo {
+  border-color: var(--danger-color);
+}
+
+.timeline-item[data-estado='manual'] .timeline-conteudo {
+  border-color: var(--warning-color);
+}
+
+/* Uma pausa esperada não deve ter a mesma carga visual de uma falha. */
+.timeline-item[data-estado='manual'] .timeline-erro {
+  color: #92400e;
+}
+
+.timeline-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  justify-content: space-between;
+}
+
+.timeline-rotulo {
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+.timeline-item[data-estado='pendente'] .timeline-rotulo {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.timeline-meta {
+  font-size: 0.8125rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.timeline-duracao {
+  color: #94a3b8;
+}
+
+.timeline-resumo {
+  margin: 0.375rem 0 0;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.timeline-erro {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--danger-color);
+  word-break: break-word;
+}
+
+@media (max-width: 575.98px) {
+  .timeline-cabecalho {
+    flex-direction: column;
+  }
+
+  .timeline-meta {
+    white-space: normal;
+  }
+}

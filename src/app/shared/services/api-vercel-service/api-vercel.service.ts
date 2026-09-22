@@ -22,7 +22,11 @@ import {
   IEnvironmentResponse,
   IEnvironmentsResponse,
   IGatewayStatusResponse,
+  IGoogleOAuthStatusResponse,
+  IGoogleOAuthUrlResponse,
   IHttpResponse,
+  IProvisionamentoResponse,
+  IProvisionamentosResponse,
   ITenantResponse,
   ITenantsResponse,
   ITenantTesteResponse,
@@ -359,6 +363,33 @@ export class ApiVercelService {
     });
   }
 
+  /**
+   * Habilita ou desabilita um tenant. O estado desejado vai explícito no corpo
+   * para o backend não precisar inferir do estado atual — assim um clique
+   * duplicado não alterna sem querer.
+   */
+  public alternarStatusEnvironment({
+    tenant,
+    habilitar,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    habilitar: boolean;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IEnvironmentResponse>> {
+    return this.createRequest<IEnvironmentResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.POST,
+      options: {
+        body: { tenant, habilitar },
+        headers: {
+          [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.ENVIRONMENT_STATUS,
+        },
+      },
+    });
+  }
+
   public getStatusGateway(
     disabledLoading = false
   ): Observable<IHttpResponse<IGatewayStatusResponse>> {
@@ -368,6 +399,173 @@ export class ApiVercelService {
       options: {
         headers: {
           [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GATEWAY_STATUS,
+        },
+      },
+    });
+  }
+
+  /// CONEXÃO COM O GOOGLE (OAuth do provisionamento) ///
+
+  public getStatusConexaoGoogle(
+    disabledLoading = false
+  ): Observable<IHttpResponse<IGoogleOAuthStatusResponse>> {
+    return this.createRequest<IGoogleOAuthStatusResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      options: {
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GOOGLE_OAUTH },
+      },
+    });
+  }
+
+  /**
+   * Devolve a URL de consentimento. Quem navega é a janela do usuário — este
+   * método só busca o endereço, não redireciona.
+   */
+  public gerarUrlConexaoGoogle(
+    disabledLoading = false
+  ): Observable<IHttpResponse<IGoogleOAuthUrlResponse>> {
+    return this.createRequest<IGoogleOAuthUrlResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.POST,
+      options: {
+        body: {},
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GOOGLE_OAUTH },
+      },
+    });
+  }
+
+  public desconectarGoogle(
+    disabledLoading = false
+  ): Observable<IHttpResponse<IGoogleOAuthStatusResponse>> {
+    return this.createRequest<IGoogleOAuthStatusResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.DELETE,
+      options: {
+        body: {},
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GOOGLE_OAUTH },
+      },
+    });
+  }
+
+  /// CRIAÇÃO AUTOMATIZADA DE PROJETOS ///
+
+  public getProvisionamentos(
+    disabledLoading = false
+  ): Observable<IHttpResponse<IProvisionamentosResponse>> {
+    return this.createRequest<IProvisionamentosResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      options: {
+        headers: {
+          [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.PROJECT_PROVISION,
+        },
+      },
+    });
+  }
+
+  public getProvisionamento({
+    tenant,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IProvisionamentoResponse>> {
+    return this.createRequest<IProvisionamentoResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      options: {
+        params: { tenant },
+        headers: {
+          [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.PROJECT_PROVISION,
+        },
+      },
+    });
+  }
+
+  public iniciarProvisionamento({
+    tenant,
+    projectId,
+    displayName,
+    locationId,
+    nomeEmpresa,
+    adminNome,
+    adminEmail,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    projectId: string;
+    displayName: string;
+    locationId: string;
+    nomeEmpresa: string;
+    adminNome: string;
+    adminEmail: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IProvisionamentoResponse>> {
+    return this.createRequest<IProvisionamentoResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.POST,
+      options: {
+        body: {
+          tenant,
+          projectId,
+          displayName,
+          locationId,
+          nomeEmpresa,
+          adminNome,
+          adminEmail,
+        },
+        headers: {
+          [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.PROJECT_PROVISION,
+        },
+      },
+    });
+  }
+
+  /**
+   * Executa a próxima etapa pendente. A senha do admin do tenant vai em toda
+   * chamada porque não é persistida no backend — só a última etapa a usa.
+   */
+  public executarEtapaProvisionamento({
+    tenant,
+    adminSenha,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    adminSenha: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IProvisionamentoResponse>> {
+    return this.createRequest<IProvisionamentoResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.PATCH,
+      options: {
+        body: { tenant, adminSenha },
+        headers: {
+          [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.PROJECT_PROVISION,
+        },
+      },
+    });
+  }
+
+  public descartarProvisionamento({
+    tenant,
+    disabledLoading = false,
+  }: {
+    tenant: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IProvisionamentoResponse>> {
+    return this.createRequest<IProvisionamentoResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.DELETE,
+      options: {
+        body: { tenant },
+        headers: {
+          [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.PROJECT_PROVISION,
         },
       },
     });

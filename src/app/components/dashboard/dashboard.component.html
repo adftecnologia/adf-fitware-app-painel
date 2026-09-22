@@ -9,6 +9,24 @@
     >
   </div>
 
+  <div class="alert alert-danger" *ngIf="conexaoGoogleExpirada">
+    <div
+      class="d-flex flex-wrap justify-content-between align-items-center gap-2"
+    >
+      <div>
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <b>A autorização do Google expirou ou foi revogada.</b>
+        Não é possível criar novos projetos de tenant até reconectar a conta.
+        <span class="d-block small text-muted" *ngIf="ultimoErroConexaoGoogle">
+          {{ ultimoErroConexaoGoogle }}
+        </span>
+      </div>
+      <a class="btn btn-sm btn-danger" [routerLink]="rotaCriarProjeto">
+        Reconectar conta Google
+      </a>
+    </div>
+  </div>
+
   <div class="row mb-4">
     <div class="col-md-6 mb-4">
       <div class="dashboard-card">

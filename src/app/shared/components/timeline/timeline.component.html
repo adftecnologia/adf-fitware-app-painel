@@ -1,0 +1,53 @@
+<ul class="timeline">
+  <li
+    class="timeline-item"
+    *ngFor="let linha of linhas; trackBy: trackByChave"
+    [attr.data-estado]="linha.estado"
+  >
+    <span class="timeline-marcador" [attr.data-estado]="linha.estado">
+      <i [class]="iconeDe(linha.estado)"></i>
+    </span>
+
+    <div class="timeline-conteudo">
+      <div class="timeline-cabecalho">
+        <span class="timeline-rotulo">{{ linha.rotulo }}</span>
+
+        <span class="timeline-meta" *ngIf="linha.dataHora">
+          {{ linha.dataHora | date: 'dd/MM/yyyy HH:mm:ss' }}
+          <span class="timeline-duracao" *ngIf="linha.duracaoMs">
+            · {{ formatarDuracao(linha.duracaoMs) }}
+          </span>
+        </span>
+
+        <span
+          class="timeline-meta"
+          *ngIf="
+            !linha.dataHora &&
+            linha.estado === EEstadoLinhaTimeline.EM_ANDAMENTO
+          "
+        >
+          em andamento…
+        </span>
+
+        <span
+          class="timeline-meta"
+          *ngIf="
+            !linha.dataHora && linha.estado === EEstadoLinhaTimeline.PENDENTE
+          "
+        >
+          aguardando
+        </span>
+      </div>
+
+      <p class="timeline-resumo" *ngIf="linha.resumo">{{ linha.resumo }}</p>
+
+      <p class="timeline-erro" *ngIf="linha.erro">
+        <i class="fas fa-exclamation-triangle me-1"></i>{{ linha.erro }}
+      </p>
+    </div>
+  </li>
+</ul>
+
+<p class="text-muted mb-0" *ngIf="!linhas.length">
+  Nenhuma etapa registrada ainda.
+</p>

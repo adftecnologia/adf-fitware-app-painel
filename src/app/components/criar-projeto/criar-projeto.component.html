@@ -1,0 +1,824 @@
+<div class="page-header mb-4">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h4 class="mb-0">
+        <i class="fas fa-rocket me-2"></i>
+        Criar projeto de tenant
+      </h4>
+      <small class="text-muted">
+        Cria o projeto no Google Cloud, habilita Authentication e Realtime
+        Database, e registra o tenant no fitmanager-util.
+      </small>
+    </div>
+    <div class="col-md-4 text-md-end mt-2 mt-md-0">
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="abrirFormulario()"
+        [disabled]="!conectado || executando || (carregando$ | async) === true"
+        [title]="
+          !conectado
+            ? 'Conecte uma conta Google antes de criar projetos'
+            : 'Criar um projeto novo'
+        "
+      >
+        <i class="fas fa-plus me-2"></i>
+        Novo projeto
+      </button>
+    </div>
+  </div>
+</div>
+
+<app-skeleton
+  *ngIf="carregando$ | async"
+  [isVisible]="true"
+  height="200px"
+  [shape]="'rounded'"
+  [animation]="'wave'"
+></app-skeleton>
+
+<ng-container *ngIf="(carregando$ | async) === false">
+  <!-- Conta Google -->
+  <div class="card-conexao mb-4" [class.conexao-inativa]="!conectado">
+    <!--
+      Enquanto há requisição de conexão em voo, o card inteiro vira esqueleto:
+      conectar ou desconectar sobre um estado ainda desconhecido levaria a
+      ações contraditórias.
+    -->
+    <app-skeleton
+      *ngIf="conexaoOcupada"
+      [isVisible]="true"
+      height="72px"
+      [shape]="'rounded'"
+      [animation]="'wave'"
+    ></app-skeleton>
+
+    <div class="row align-items-center g-3" *ngIf="!conexaoOcupada">
+      <div class="col-md-8">
+        <h6 class="mb-1">
+          <i class="fab fa-google me-2"></i>
+          Conta Google de provisionamento
+        </h6>
+
+        <p class="mb-0 text-muted small" *ngIf="!conexao?.conectado">
+          Nenhuma conta conectada. Os projetos são criados em nome de uma conta
+          Google real — uma conta de serviço não pode criar projetos fora de uma
+          Organização do Cloud.
+        </p>
+
+        <p class="mb-0 small" *ngIf="conectado">
+          Conectado como <b>{{ conexao?.email || 'conta autorizada' }}</b>
+          <span class="text-muted" *ngIf="conexao?.conectadoEm">
+            · desde {{ conexao?.conectadoEm | date: 'dd/MM/yyyy HH:mm' }}
+          </span>
+          <span class="text-muted" *ngIf="conexao?.ultimaRenovacao">
+            · última renovação
+            {{ conexao?.ultimaRenovacao | date: 'dd/MM/yyyy HH:mm' }}
+          </span>
+        </p>
+
+        <p class="mb-0 small text-danger" *ngIf="conexaoExpirada">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          A autorização expirou ou foi revogada. Reconecte para voltar a criar
+          projetos.
+          <span class="d-block text-muted" *ngIf="conexao?.ultimoErro">
+            {{ conexao?.ultimoErro }}
+          </span>
+        </p>
+      </div>
+
+      <div class="col-md-4 text-md-end">
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="conectarGoogle()"
+          *ngIf="!conectado"
+        >
+          Conectar conta Google
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-danger"
+          (click)="abrirConfirmacaoDesconexao()"
+          *ngIf="conectado"
+        >
+          <i class="fas fa-unlink me-1"></i>
+          Desconectar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!--
+    Caminho de volta para a timeline. Sem isto, fechar o modal durante uma
+    criação deixava a tela sem indicação de que algo estava acontecendo.
+  -->
+  <div
+    class="alert d-flex flex-wrap justify-content-between align-items-center gap-2"
+    [class.alert-warning]="pendente.status !== EStatusProvisionamento.ERRO"
+    [class.alert-danger]="pendente.status === EStatusProvisionamento.ERRO"
+    *ngIf="provisionamentoPendente as pendente"
+  >
+    <div>
+      <ng-container
+        *ngIf="pendente.status === EStatusProvisionamento.EM_ANDAMENTO"
+      >
+        <span class="loading me-2"></span>
+        <b>Criando {{ pendente.tenant }}</b>
+      </ng-container>
+
+      <ng-container
+        *ngIf="pendente.status === EStatusProvisionamento.AGUARDANDO_MANUAL"
+      >
+        <i class="fas fa-hand-pointer me-2"></i>
+        <b>{{ pendente.tenant }} precisa de uma ação sua</b>
+      </ng-container>
+
+      <ng-container *ngIf="pendente.status === EStatusProvisionamento.ERRO">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <b>{{ pendente.tenant }} parou com erro</b>
+      </ng-container>
+
+      <span class="ms-2 small">
+        etapa {{ etapasConcluidas(pendente) + 1 }} de {{ totalEtapas }}
+      </span>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-sm btn-primary"
+      (click)="abrirTimeline(pendente)"
+    >
+      <i class="fas fa-stream me-1"></i>
+      Acompanhar
+    </button>
+  </div>
+
+  <!-- Busca -->
+  <div class="filters-container">
+    <div class="row">
+      <div class="col-md-6">
+        <label class="form-label">Buscar</label>
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="fas fa-search"></i>
+          </span>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Tenant, ID do projeto, nome ou empresa..."
+            [(ngModel)]="filtro"
+            (input)="aplicarFiltro()"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th scope="col">Tenant</th>
+            <th scope="col" class="d-none d-md-table-cell">Projeto</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="d-none d-md-table-cell">Criado em</th>
+            <th scope="col" class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of provisionamentosFiltrados">
+            <td>
+              <b>{{ item.tenant }}</b>
+            </td>
+            <td class="d-none d-md-table-cell fonte-mono">
+              {{ item.projectId }}
+            </td>
+            <td>
+              <span
+                class="badge bg-success"
+                *ngIf="item.status === EStatusProvisionamento.CONCLUIDO"
+              >
+                Concluído
+              </span>
+              <span
+                class="badge bg-danger"
+                *ngIf="item.status === EStatusProvisionamento.ERRO"
+              >
+                Com erro
+              </span>
+              <span
+                class="badge bg-warning text-dark"
+                *ngIf="item.status === EStatusProvisionamento.EM_ANDAMENTO"
+              >
+                Em andamento
+              </span>
+              <span
+                class="badge bg-warning text-dark"
+                *ngIf="item.status === EStatusProvisionamento.AGUARDANDO_MANUAL"
+              >
+                Aguardando você
+              </span>
+            </td>
+            <td class="d-none d-md-table-cell">
+              {{ item.criadoEm | date: 'dd/MM/yyyy HH:mm' }}
+            </td>
+            <td class="p-2 text-end">
+              <div class="btn-group btn-group-sm d-flex d-md-inline-flex">
+                <button
+                  type="button"
+                  class="btn btn-outline-primary"
+                  (click)="abrirTimeline(item)"
+                  title="Ver a timeline das etapas"
+                >
+                  <i class="fas fa-stream"></i>
+                  <span class="d-none d-sm-inline ms-1">Timeline</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [class.btn-outline-secondary]="estaHabilitado(item)"
+                  [class.btn-outline-success]="!estaHabilitado(item)"
+                  (click)="abrirAlternarStatus(item)"
+                  [title]="
+                    estaHabilitado(item)
+                      ? 'Desabilitar: o app do cliente deixa de inicializar'
+                      : 'Habilitar: devolve a configuração e o app volta a funcionar'
+                  "
+                >
+                  <i
+                    class="fas"
+                    [class.fa-toggle-on]="estaHabilitado(item)"
+                    [class.fa-toggle-off]="!estaHabilitado(item)"
+                  ></i>
+                  <span class="d-none d-sm-inline ms-1">
+                    {{ estaHabilitado(item) ? 'Desabilitar' : 'Habilitar' }}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-danger"
+                  (click)="abrirDescarte(item)"
+                  title="Descartar registro"
+                >
+                  <i class="fas fa-trash"></i>
+                  <span class="d-none d-sm-inline ms-1">Descartar</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Estado vazio dentro da própria tabela, como na tela de Usuários. -->
+          <tr *ngIf="!provisionamentosFiltrados.length">
+            <td colspan="3" class="d-md-none text-center text-muted py-4">
+              <div class="empty-state-mobile">
+                <i class="fas fa-inbox fa-lg mb-2"></i>
+                <br />
+                <small>
+                  {{
+                    filtro
+                      ? 'Nenhuma criação encontrada'
+                      : 'Nenhum projeto criado por aqui'
+                  }}
+                </small>
+              </div>
+            </td>
+            <td
+              colspan="5"
+              class="d-none d-md-table-cell text-center text-muted py-4"
+            >
+              <div class="empty-state-desktop">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <br />
+                {{
+                  filtro
+                    ? 'Nenhuma criação encontrada com o filtro aplicado'
+                    : 'Nenhum projeto criado por aqui ainda'
+                }}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</ng-container>
+
+<!-- Modal: formulário de criação -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="mostrarFormulario"
+  (click)="fecharFormulario()"
+></div>
+<div class="modal-custom" *ngIf="mostrarFormulario">
+  <div class="modal-conteudo">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">Novo projeto de tenant</h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharFormulario()"
+      ></button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="iniciar()">
+      <div class="modal-corpo">
+        <h6 class="mb-3">Identificação</h6>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Tenant *</label>
+            <input
+              type="text"
+              class="form-control"
+              formControlName="tenant"
+              placeholder="ex.: a7sportsclub"
+              (input)="onTenantChange()"
+              [class.is-invalid]="tenant?.invalid && tenant?.touched"
+            />
+            <div class="invalid-feedback">
+              Use apenas letras minúsculas, números e hífen (2 a 63 caracteres).
+            </div>
+            <div class="form-text">
+              É o subdomínio do cliente e a chave dos nós no fitmanager-util.
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">ID do projeto no Google *</label>
+            <input
+              type="text"
+              class="form-control fonte-mono"
+              formControlName="projectId"
+              (input)="onProjectIdChange()"
+              [class.is-invalid]="projectId?.invalid && projectId?.touched"
+            />
+            <div class="invalid-feedback">
+              6 a 30 caracteres, começando por letra e sem terminar em hífen.
+            </div>
+            <div class="form-text">
+              Imutável e único no mundo inteiro. Se já existir, a criação falha.
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Nome exibido no console *</label>
+            <input
+              type="text"
+              class="form-control"
+              formControlName="displayName"
+              placeholder="ex.: A7 Sports Club"
+              maxlength="30"
+              [class.is-invalid]="displayName?.invalid && displayName?.touched"
+            />
+            <div class="invalid-feedback">
+              O Google exige de 4 a 30 caracteres.
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Região do Realtime Database *</label>
+            <select class="form-select" formControlName="locationId">
+              <option *ngFor="let local of locaisRtdb" [value]="local">
+                {{ local }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Nome da empresa *</label>
+            <input
+              type="text"
+              class="form-control"
+              formControlName="nomeEmpresa"
+              placeholder="Aparece no app do tenant"
+            />
+            <div class="form-text">
+              Gravado em <code>whatsAppConfig/nomeEmpresa</code> no projeto
+              novo.
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <h6 class="mb-3">Primeiro administrador do tenant</h6>
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Nome *</label>
+            <input
+              type="text"
+              class="form-control"
+              formControlName="adminNome"
+            />
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">E-mail *</label>
+            <input
+              type="email"
+              class="form-control"
+              formControlName="adminEmail"
+              [class.is-invalid]="adminEmail?.invalid && adminEmail?.touched"
+            />
+            <div class="invalid-feedback">Informe um e-mail válido.</div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Senha *</label>
+            <input
+              type="password"
+              class="form-control"
+              formControlName="adminSenha"
+              [class.is-invalid]="adminSenha?.invalid && adminSenha?.touched"
+            />
+            <div class="invalid-feedback">Mínimo de 6 caracteres.</div>
+            <div class="form-text">
+              Nunca é gravada no painel — viaja apenas nas requisições das
+              etapas.
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info py-2 mt-4 mb-0 small">
+          <i class="fas fa-info-circle me-1"></i>
+          O bucket do Cloud Storage não é provisionado no plano Spark (exige
+          Blaze). O campo <code>storageBucket</code> é registrado com o nome
+          convencional e passa a existir se o projeto for atualizado para Blaze.
+        </div>
+      </div>
+
+      <div class="modal-rodape">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="fecharFormulario()"
+          [disabled]="executando"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="!podeIniciar">
+          <span *ngIf="executando" class="loading me-2"></span>
+          {{ executando ? 'Criando...' : 'Criar projeto' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: timeline das etapas -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="provisionamentoAberto"
+  (click)="fecharTimeline()"
+></div>
+<div class="modal-custom" *ngIf="provisionamentoAberto as aberto">
+  <div class="modal-conteudo">
+    <div class="modal-cabecalho">
+      <div>
+        <h5 class="mb-0">{{ aberto.tenant }}</h5>
+        <small class="text-muted fonte-mono">{{ aberto.projectId }}</small>
+      </div>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharTimeline()"
+      ></button>
+    </div>
+
+    <div class="modal-corpo">
+      <div class="mb-3">
+        <span
+          class="badge bg-warning text-dark"
+          *ngIf="aberto.status === EStatusProvisionamento.EM_ANDAMENTO"
+        >
+          Em andamento
+        </span>
+        <span
+          class="badge bg-danger"
+          *ngIf="aberto.status === EStatusProvisionamento.ERRO"
+        >
+          Com erro
+        </span>
+        <span
+          class="badge bg-warning text-dark"
+          *ngIf="aberto.status === EStatusProvisionamento.AGUARDANDO_MANUAL"
+        >
+          Aguardando você
+        </span>
+        <span
+          class="badge bg-success"
+          *ngIf="aberto.status === EStatusProvisionamento.CONCLUIDO"
+        >
+          Concluído
+        </span>
+      </div>
+
+      <app-timeline
+        [historico]="aberto.historico"
+        [etapas]="etapas"
+        [etapaEmAndamento]="etapaEmAndamento(aberto)"
+      ></app-timeline>
+
+      <!--
+        Sem esta linha, uma etapa em propagação parece travada: a timeline fica
+        parada no mesmo item por dezenas de segundos sem explicar o motivo.
+      -->
+      <p
+        class="small text-muted mt-3 mb-0"
+        *ngIf="executandoAberto && aguardandoPropagacao"
+      >
+        <i class="fas fa-hourglass-half me-1"></i>
+        Aguardando o Google liberar o recurso recém-criado — é normal logo após
+        criar o projeto. Tentativa {{ tentativasEtapaAtual + 1 }}.
+      </p>
+
+      <!--
+        Ação manual: o Google não permite criar a configuração do Authentication
+        por API em projetos no plano Spark. É o único passo do fluxo que depende
+        do console — confirmado na Fase 0.
+      -->
+      <div
+        class="alert alert-warning mt-3 mb-0"
+        *ngIf="aguardandoAcaoManual && aberto.acaoManual as acao"
+      >
+        <h6 class="alert-heading">
+          <i class="fas fa-hand-pointer me-2"></i>{{ acao.titulo }}
+        </h6>
+
+        <p class="small mb-2">{{ acao.motivo }}</p>
+
+        <ol class="small mb-3 ps-3">
+          <li *ngFor="let passo of acao.instrucoes">{{ passo }}</li>
+        </ol>
+
+        <a
+          class="btn btn-sm btn-outline-dark"
+          [href]="acao.url"
+          target="_blank"
+          rel="noopener"
+        >
+          <i class="fas fa-external-link-alt me-1"></i>
+          Abrir no console do Firebase
+        </a>
+
+        <p class="small text-muted mt-2 mb-0">
+          O painel confirma pela API se a configuração existe — se ainda não
+          estiver pronta, a etapa continua parada aqui.
+        </p>
+      </div>
+
+      <div
+        class="alert alert-danger mt-3 mb-0"
+        *ngIf="aberto.status === EStatusProvisionamento.ERRO"
+      >
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        {{ aberto.erro }}
+      </div>
+
+      <div
+        class="alert alert-success mt-3 mb-0"
+        *ngIf="aberto.status === EStatusProvisionamento.CONCLUIDO"
+      >
+        <i class="fas fa-check-circle me-1"></i>
+        Tenant pronto. O app já consegue inicializar com
+        <code>{{ aberto.dados.databaseURL }}</code> e o administrador já pode
+        fazer login.
+      </div>
+
+      <!--
+        A senha só aparece quando a etapa pendente é a que a consome. Ela nunca
+        é persistida, então ao voltar numa criação parada ali é preciso digitar
+        de novo.
+      -->
+      <div class="mt-3" *ngIf="precisaSenhaParaRetomar">
+        <label class="form-label">Senha do administrador do tenant *</label>
+        <input
+          type="password"
+          class="form-control"
+          [(ngModel)]="senhaRetomada"
+          placeholder="Mínimo de 6 caracteres"
+        />
+        <div class="form-text">
+          Necessária para criar o usuário <b>{{ aberto.admin.email }}</b> no
+          projeto. Não é gravada em lugar nenhum.
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="fecharTimeline()"
+      >
+        Fechar
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="tentarNovamente()"
+        [disabled]="!podeRetomar"
+        *ngIf="aberto.status !== EStatusProvisionamento.CONCLUIDO"
+      >
+        <span *ngIf="executandoAberto" class="loading me-2"></span>
+        {{
+          executandoAberto
+            ? 'Executando...'
+            : aguardandoAcaoManual
+              ? 'Já habilitei — continuar'
+              : 'Tentar novamente'
+        }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: habilitar / desabilitar tenant -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="provisionamentoParaAlternar"
+  (click)="fecharAlternarStatus()"
+></div>
+<div class="modal-custom" *ngIf="provisionamentoParaAlternar as alvo">
+  <div class="modal-conteudo modal-conteudo-pequeno">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">
+        {{ estaHabilitado(alvo) ? 'Desabilitar tenant' : 'Habilitar tenant' }}
+      </h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharAlternarStatus()"
+      ></button>
+    </div>
+
+    <div class="modal-corpo">
+      <p>
+        {{ estaHabilitado(alvo) ? 'Desabilitar' : 'Habilitar' }} o tenant
+        <b>{{ alvo.tenant }}</b> ({{ alvo.projectId }})?
+      </p>
+
+      <div class="alert alert-danger py-2 mb-0" *ngIf="estaHabilitado(alvo)">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        <b>O app desse cliente sai do ar.</b> Ele lê a configuração no boot, e
+        sem ela não consegue inicializar o Firebase — quem acessar verá a tela
+        de ambiente não encontrado.
+        <span class="d-block mt-2">
+          O projeto no Google, os dados do tenant e a credencial do painel
+          continuam intactos. A configuração é guardada e volta igual ao
+          habilitar.
+        </span>
+      </div>
+
+      <div class="alert alert-success py-2 mb-0" *ngIf="!estaHabilitado(alvo)">
+        <i class="fas fa-check-circle me-1"></i>
+        A configuração volta exatamente como estava e o app do cliente torna a
+        inicializar normalmente.
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="fecharAlternarStatus()"
+        [disabled]="alternandoStatus"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn"
+        [class.btn-danger]="estaHabilitado(alvo)"
+        [class.btn-success]="!estaHabilitado(alvo)"
+        (click)="confirmarAlternarStatus()"
+        [disabled]="alternandoStatus"
+      >
+        <span *ngIf="alternandoStatus" class="loading me-2"></span>
+        {{
+          alternandoStatus
+            ? 'Aplicando...'
+            : estaHabilitado(alvo)
+              ? 'Desabilitar'
+              : 'Habilitar'
+        }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: desconectar a conta Google -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="confirmandoDesconexao"
+  (click)="fecharConfirmacaoDesconexao()"
+></div>
+<div class="modal-custom" *ngIf="confirmandoDesconexao">
+  <div class="modal-conteudo modal-conteudo-pequeno">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">Desconectar conta Google</h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharConfirmacaoDesconexao()"
+      ></button>
+    </div>
+
+    <div class="modal-corpo">
+      <p>
+        Desconectar <b>{{ conexao?.email || 'a conta autorizada' }}</b> do
+        painel?
+      </p>
+      <div class="alert alert-warning py-2 mb-0">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        Enquanto não houver conta conectada,
+        <b>não é possível criar projetos novos</b>. Os tenants já provisionados
+        continuam funcionando — eles têm credencial própria no fitmanager-util.
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="fecharConfirmacaoDesconexao()"
+        [disabled]="desconectando"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="desconectarGoogle()"
+        [disabled]="desconectando"
+      >
+        <span *ngIf="desconectando" class="loading me-2"></span>
+        {{ desconectando ? 'Desconectando...' : 'Desconectar' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: descartar registro de provisionamento -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="provisionamentoParaDescartar"
+  (click)="fecharDescarte()"
+></div>
+<div class="modal-custom" *ngIf="provisionamentoParaDescartar">
+  <div class="modal-conteudo modal-conteudo-pequeno">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">Descartar registro</h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharDescarte()"
+      ></button>
+    </div>
+
+    <div class="modal-corpo">
+      <p>
+        Descartar o registro de provisionamento de
+        <b>{{ provisionamentoParaDescartar.tenant }}</b> ({{
+          provisionamentoParaDescartar.projectId
+        }})?
+      </p>
+      <div class="alert alert-warning py-2 mb-0">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        Isto apaga apenas o histórico desta tela. O projeto no Google Cloud, o
+        tenant e o environment continuam existindo — para removê-los, use o
+        console do Google e as telas de Configuração.
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="fecharDescarte()"
+        [disabled]="descartando"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="confirmarDescarte()"
+        [disabled]="descartando"
+      >
+        <span *ngIf="descartando" class="loading me-2"></span>
+        {{ descartando ? 'Descartando...' : 'Descartar' }}
+      </button>
+    </div>
+  </div>
+</div>
