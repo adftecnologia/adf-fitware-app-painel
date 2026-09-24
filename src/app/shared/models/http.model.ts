@@ -1,3 +1,4 @@
+import { ITenantGatewayConfig } from './api-catra.model';
 import { IFirebaseConfigCliente } from './firebase-config.model';
 import { IUsuario } from './sistema.model';
 
@@ -65,6 +66,21 @@ export interface IEnvironmentResponse {
 export interface IGatewayStatusResponse {
   total: number;
   configurados: number;
+}
+
+/**
+ * Configuração de gateway (Mercado Pago e futuros providers) de um tenant no
+ * srv-catra. O shape de ITenantGatewayConfig mora em api-catra.model.ts
+ * (mesmo lugar do enum EGatewayIntegration usado no formulário) - aqui só os
+ * envelopes de resposta, no mesmo padrão de ITenantsResponse/ITenantResponse.
+ */
+export interface IGatewayConfigsResponse {
+  items: ITenantGatewayConfig[];
+  total: number;
+}
+
+export interface IGatewayConfigResponse {
+  tenant: ITenantGatewayConfig;
 }
 
 /// CRIAÇÃO AUTOMATIZADA DE PROJETOS ///

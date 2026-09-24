@@ -6,6 +6,7 @@ export enum ERoutes {
   USUARIOS = '/usuarios',
   TENANTS = '/configuracao-tenant',
   ENVIRONMENTS = '/configuracao-environments',
+  GATEWAY_CONFIG = '/configuracao-gateway',
   CRIAR_PROJETO = '/criar-projeto',
   CORINGA = '**',
 }

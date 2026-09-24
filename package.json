@@ -3,7 +3,7 @@
   "version": "1.8.3",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --proxy-config proxy.conf.json",
     "start:dev": "concurrently \"npm run start -- --port 4200\" \"npm run api:dev\"",
     "start:dev:full": "concurrently \"npm run start -- --port 4200\" \"npm run build:api:watch\" \"npm run api:dev\"",
     "build:dev": "ng build --configuration development",

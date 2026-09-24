@@ -34,9 +34,11 @@ if (isProduction || ['main', 'master'].includes(gitBranch)) {
 console.log(`🚀 Iniciando build completo para ${environmentName}...`);
 
 try {
-  /// DESABILITADO POR HORA ////
-  /*
-  // 1. Atualizar configurações de ambiente com valores da Vercel
+  // 1. Atualizar srvCatra.tenantId/apiKey com valores da Vercel (não são commitados -
+  // os arquivos de environment.*.ts só têm placeholders). Se as env vars não estiverem
+  // configuradas ainda no projeto da Vercel, o build segue com os placeholders em vez de
+  // falhar - evita quebrar deploys existentes até 'VERCEL_TENANT_ID'/'VERCEL_API_KEY'
+  // serem cadastradas em Settings > Environment Variables.
   const tenantId = process.env.VERCEL_TENANT_ID;
   const apiKey = process.env.VERCEL_API_KEY;
 
@@ -56,10 +58,10 @@ try {
     // Ler o arquivo de environment
     let envContent = fs.readFileSync(envFile, 'utf8');
 
-    // Substituir tenantId, apiKey e recaptchaSiteKey
+    // Substituir tenantId e apiKey (só dentro do bloco srvCatra)
     envContent = envContent.replace(
-      /tenantId:\s*['"][^'"]*['"]/,
-      `tenantId: '${tenantId}'`
+      /(srvCatra:\s*\{[^}]*tenantId:\s*)['"][^'"]*['"]/,
+      `$1'${tenantId}'`
     );
     envContent = envContent.replace(
       /(srvCatra:\s*\{[^}]*apiKey:\s*)['"][^'"]*['"]/,
@@ -70,13 +72,12 @@ try {
     fs.writeFileSync(envFile, envContent, 'utf8');
     console.log('✅ Configurações atualizadas com sucesso!');
   } else {
-    //console.log("ℹ️  Usando configurações padrão (variáveis Vercel não encontradas)",);
-    throw new Error(
-      `Variáveis de ambiente Vercel não encontradas. Configurar 'VERCEL_TENANT_ID' e 'VERCEL_API_KEY'`
+    console.log(
+      "⚠️  'VERCEL_TENANT_ID'/'VERCEL_API_KEY' não encontradas - build segue com os placeholders de src/environments/*."
     );
-  }*/
+  }
 
-  // 1. Limpar diretório dist
+  // 2. Limpar diretório dist
   console.log('🧹 Limpando diretório dist...');
   if (fs.existsSync('dist')) {
     fs.rmSync('dist', { recursive: true, force: true });

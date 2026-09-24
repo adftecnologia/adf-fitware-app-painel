@@ -206,8 +206,14 @@ const notFoundError = (message: string): Error => {
 
 /**
  * Lê o service account de um tenant no projeto de configuração e devolve a credencial já decifrada.
+ *
+ * Exportada (além de usada internamente por getTenantContext) para o fluxo de
+ * configuração de gateway (srv-catra) reaproveitar a credencial já provisionada
+ * de um tenant sem pedir para colar o JSON de novo. Quem chama isto é sempre
+ * código server-side - a privateKey retornada nunca deve ser devolvida ao
+ * browser em nenhuma resposta HTTP.
  */
-async function loadTenantServiceAccount(tenant: string): Promise<{
+export async function loadTenantServiceAccount(tenant: string): Promise<{
   projectId: string;
   clientEmail: string;
   privateKey: string;

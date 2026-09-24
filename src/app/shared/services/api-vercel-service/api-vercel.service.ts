@@ -14,6 +14,10 @@ import {
   EHttpHeaders,
   EHttpVerbs,
 } from '../../enums/url-http.enum';
+import {
+  EGatewayIntegration,
+  IGatewayMarketplaceFee,
+} from '../../models/api-catra.model';
 import { IFirebaseConfigCliente } from '../../models/firebase-config.model';
 import { IUsuario } from '../../models/sistema.model';
 import { AuthService } from '../auth-service/auth.service';
@@ -21,6 +25,8 @@ import { LoadingService } from '../loading-service/loading.service';
 import {
   IEnvironmentResponse,
   IEnvironmentsResponse,
+  IGatewayConfigResponse,
+  IGatewayConfigsResponse,
   IGatewayStatusResponse,
   IGoogleOAuthStatusResponse,
   IGoogleOAuthUrlResponse,
@@ -567,6 +573,172 @@ export class ApiVercelService {
         headers: {
           [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.PROJECT_PROVISION,
         },
+      },
+    });
+  }
+
+  /// CONFIGURAÇÃO DE GATEWAY (srv-catra) ///
+
+  public getGatewayConfigs(
+    disabledLoading = false
+  ): Observable<IHttpResponse<IGatewayConfigsResponse>> {
+    return this.createRequest<IGatewayConfigsResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      options: {
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GATEWAY_CONFIG },
+      },
+    });
+  }
+
+  /**
+   * syncFirebaseFromTenant reaproveita a credencial já provisionada deste
+   * tenant no painel (Configuração de Tenants); serviceAccountJson é o JSON
+   * colado manualmente, para tenants que o srv-catra gerencia mas que este
+   * painel não provisionou. Os dois são opcionais e mutuamente exclusivos -
+   * sem nenhum dos dois, a config de gateway fica sem credencial Firebase.
+   */
+  public criarGatewayConfig({
+    targetTenantId,
+    company,
+    integration,
+    marketplaceFee,
+    redirectTenantUri,
+    syncFirebaseFromTenant,
+    serviceAccountJson,
+    firebaseTenant,
+    habilitarPix,
+    habilitarBoleto,
+    disabledLoading = false,
+  }: {
+    targetTenantId: string;
+    company: string;
+    integration: EGatewayIntegration | string;
+    marketplaceFee: IGatewayMarketplaceFee;
+    redirectTenantUri: string;
+    syncFirebaseFromTenant?: boolean;
+    serviceAccountJson?: string;
+    /** Tenant do fitmanager-util que recebe o vínculo (apiConfig/gatewayConfig). Opcional. */
+    firebaseTenant?: string;
+    habilitarPix?: boolean;
+    habilitarBoleto?: boolean;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IGatewayConfigResponse>> {
+    return this.createRequest<IGatewayConfigResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.POST,
+      options: {
+        body: {
+          targetTenantId,
+          company,
+          gateway: { integration, marketplaceFee, redirectTenantUri },
+          syncFirebaseFromTenant,
+          serviceAccountJson,
+          firebaseTenant,
+          habilitarPix,
+          habilitarBoleto,
+        },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GATEWAY_CONFIG },
+      },
+    });
+  }
+
+  public atualizarGatewayConfig({
+    targetTenantId,
+    active,
+    company,
+    gatewayActive,
+    integration,
+    marketplaceFee,
+    redirectTenantUri,
+    syncFirebaseFromTenant,
+    serviceAccountJson,
+    firebaseTenant,
+    habilitarPix,
+    habilitarBoleto,
+    disabledLoading = false,
+  }: {
+    targetTenantId: string;
+    /** Ativa/inativa o TENANT no srv-catra — não confundir com gatewayActive. */
+    active?: boolean;
+    company?: string;
+    /** Ativa/inativa só o gateway (Mercado Pago) deste tenant. */
+    gatewayActive?: boolean;
+    integration?: EGatewayIntegration | string;
+    marketplaceFee?: IGatewayMarketplaceFee;
+    redirectTenantUri?: string;
+    syncFirebaseFromTenant?: boolean;
+    serviceAccountJson?: string;
+    /** Tenant do fitmanager-util que recebe o vínculo (apiConfig/gatewayConfig). Opcional. */
+    firebaseTenant?: string;
+    habilitarPix?: boolean;
+    habilitarBoleto?: boolean;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IGatewayConfigResponse>> {
+    return this.createRequest<IGatewayConfigResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.PATCH,
+      options: {
+        body: {
+          targetTenantId,
+          active,
+          company,
+          gateway: {
+            active: gatewayActive,
+            integration,
+            marketplaceFee,
+            redirectTenantUri,
+          },
+          syncFirebaseFromTenant,
+          serviceAccountJson,
+          firebaseTenant,
+          habilitarPix,
+          habilitarBoleto,
+        },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GATEWAY_CONFIG },
+      },
+    });
+  }
+
+  public removerGatewayConfig({
+    targetTenantId,
+    disabledLoading = false,
+  }: {
+    targetTenantId: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IGatewayConfigResponse>> {
+    return this.createRequest<IGatewayConfigResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.DELETE,
+      options: {
+        body: { targetTenantId },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GATEWAY_CONFIG },
+      },
+    });
+  }
+
+  /**
+   * Exclui DEFINITIVAMENTE o tenant inteiro no srv-catra (apiKey, gateway,
+   * credencial Firebase, recaptcha) - para quando o cliente sai. Diferente de
+   * removerGatewayConfig, que só remove o atributo `gateway`. Irreversível.
+   */
+  public excluirTenantGateway({
+    targetTenantId,
+    disabledLoading = false,
+  }: {
+    targetTenantId: string;
+    disabledLoading?: boolean;
+  }): Observable<IHttpResponse<IGatewayConfigResponse>> {
+    return this.createRequest<IGatewayConfigResponse>({
+      disabledLoading,
+      uri: EBaseUrls.DEV_CONFIG,
+      method: EHttpVerbs.DELETE,
+      options: {
+        body: { targetTenantId },
+        headers: { [EHttpHeaders.X_DEV_RESOURCE]: EDevResource.GATEWAY_TENANT },
       },
     });
   }

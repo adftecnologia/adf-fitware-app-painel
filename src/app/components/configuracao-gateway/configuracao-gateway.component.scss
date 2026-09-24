@@ -1,0 +1,102 @@
+.fonte-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+
+/* Estado vazio dentro da tabela — mesmo tratamento da tela de Tenants. */
+.empty-state-desktop {
+  padding: 2rem 0;
+}
+
+.empty-state-mobile {
+  padding: 1.5rem 0;
+}
+
+.modal-backdrop-custom {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+}
+
+.modal-custom {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+/*
+ * Coluna flex em vez de um bloco com overflow: assim só o corpo rola, e
+ * cabeçalho e rodapé ficam sempre visíveis (mesmo tratamento do modal de
+ * criar-projeto — o formulário de gateway também passa da altura da tela).
+ */
+.modal-conteudo {
+  width: 100%;
+  max-width: 42rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #fff;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  pointer-events: auto;
+}
+
+.modal-conteudo-pequeno {
+  max-width: 32rem;
+}
+
+.modal-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+.modal-corpo {
+  padding: 1.25rem;
+  overflow-y: auto;
+  /* Ocupa a sobra e encolhe quando precisa — é a única parte que rola. */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.modal-rodape {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+/*
+ * O formulário é o filho direto do .modal-conteudo no modal de criar/editar,
+ * então precisa repassar a coluna flex — senão o corpo não teria de quem
+ * herdar a altura disponível e o rodapé voltaria a rolar.
+ */
+.modal-conteudo > form {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/*
+ * Cinza neutro para o estado inativo. O bg-secondary do Bootstrap (#6c757d) fica
+ * próximo demais do tom escuro do tema (--secondary-color: #32475c), o que deixava
+ * o badge parecido com os outros elementos escuros da tabela.
+ */
+.badge.badge-inativo {
+  background-color: #9ca3af;
+  color: #fff;
+}
