@@ -5,6 +5,11 @@ export const environment = {
     isLocalUrl: true,
     baseUrl: 'http://localhost:3001/api/routes',
   },
+  srvCatra: {
+    baseUrl: '/srv-catra',
+    tenantId: 'fitware-util',
+    apiKey: 'API_KEY_LOCAL_HERE',
+  },
   firebase: {
     apiKey: 'AIzaSyAoGw9Pq0IU11cOZ_Cym_tAJmvgcoLUXzc',
     authDomain: 'fitmanager-util.firebaseapp.com',

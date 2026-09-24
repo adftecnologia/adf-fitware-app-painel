@@ -32,15 +32,31 @@ import {
   HttpHelper,
 } from '../../lib/helper/sistema.helper';
 import {
+  createTenantGatewayConfig,
+  deleteTenantConfig,
+  getTenantGatewayConfig,
+  ICreateTenantGatewayConfigInput,
+  IUpdateTenantGatewayConfigInput,
+  listAllTenantsGatewayConfig,
+  removeTenantGatewayConfig,
+  updateTenantGatewayConfig,
+  validateSrvCatraEnvs,
+} from '../../lib/helper/srv-catra.helper';
+import {
   assertValidTenantName,
   deleteTenantServiceAccount,
   getTenantContext,
   ITenantAuthenticatedRequest,
   listTenantServiceAccounts,
+  loadTenantServiceAccount,
   saveTenantServiceAccount,
   TenantHelper,
   updateTenantDatabaseUrl,
 } from '../../lib/helper/tenant.helper';
+import {
+  listarVinculos,
+  vincularTenantGateway,
+} from '../../lib/helper/tenant-gateway-link.helper';
 import { withErrorHandling } from '../../lib/middlewares/sistema.midd';
 
 /**
@@ -74,6 +90,11 @@ import { withErrorHandling } from '../../lib/middlewares/sistema.midd';
  *   PATCH  X-Dev-Resource: project-provision  executa a próxima etapa pendente
  *   DELETE X-Dev-Resource: project-provision  descarta um provisionamento
  *   POST   X-Dev-Resource: environment-status habilita/desabilita um tenant
+ *   GET    X-Dev-Resource: gateway-config      lista config de gateway (srv-catra)
+ *   POST   X-Dev-Resource: gateway-config      cria config de gateway de um tenant
+ *   PATCH  X-Dev-Resource: gateway-config      atualiza config de gateway de um tenant
+ *   DELETE X-Dev-Resource: gateway-config      remove a config de gateway de um tenant
+ *   DELETE X-Dev-Resource: gateway-tenant      EXCLUI o tenant inteiro no srv-catra (irreversível)
  */
 
 export enum EDevResource {
@@ -84,6 +105,19 @@ export enum EDevResource {
   GOOGLE_OAUTH = 'google-oauth',
   PROJECT_PROVISION = 'project-provision',
   ENVIRONMENT_STATUS = 'environment-status',
+  /**
+   * CRUD de configuração de gateway (Mercado Pago e futuros providers) de um
+   * tenant no srv-catra - backend AWS separado deste painel. Sempre roda
+   * server-to-server (ver lib/helper/srv-catra.helper.ts): a privateKey do
+   * Firebase de um tenant nunca é devolvida ao browser.
+   */
+  GATEWAY_CONFIG = 'gateway-config',
+  /**
+   * Exclusão DEFINITIVA do item inteiro de um tenant no srv-catra (quando o
+   * cliente sai) - diferente de GATEWAY_CONFIG + DELETE, que só remove o
+   * atributo `gateway`. Recurso separado para não haver como confundir os dois.
+   */
+  GATEWAY_TENANT = 'gateway-tenant',
 }
 
 /** Header que identifica o recurso alvo da requisição. */
@@ -104,6 +138,12 @@ const badRequestError = (message: string): Error => {
 const notFoundError = (message: string): Error => {
   const error: any = new Error(message);
   error.status = EHttpStatusCode.NOT_FOUND;
+  return error;
+};
+
+const forbiddenError = (message: string): Error => {
+  const error: any = new Error(message);
+  error.status = EHttpStatusCode.FORBIDDEN;
   return error;
 };
 
@@ -644,6 +684,411 @@ async function handleDescartarProvisionamento(
 
 /// FIM - PROVISIONAMENTO DE PROJETOS ///
 
+/// CONFIGURAÇÃO DE GATEWAY (srv-catra) ///
+
+/**
+ * Extrai o token Firebase já validado por HttpHelper.checkAuthentication, para
+ * repassá-lo ao srv-catra como a camada de autenticação Firebase dele. Não
+ * revalida nada aqui - se o request chegou até este ponto, o token já é bom.
+ */
+function extrairTokenFirebase(req: ITenantAuthenticatedRequest): string {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    throw badRequestError('Token de autenticação ausente.');
+  }
+
+  return token;
+}
+
+/**
+ * Resolve projectId/clientEmail/privateKey a partir de uma de duas fontes:
+ * - syncFirebaseFromTenant: reaproveita a credencial já provisionada deste
+ *   mesmo tenant no painel (lib/helper/tenant.helper.ts), sem pedir para
+ *   colar de novo.
+ * - serviceAccountJson: o JSON colado manualmente, para tenants que o
+ *   srv-catra gerencia mas que não foram provisionados por este painel.
+ * Nenhum dos dois é obrigatório - a config de gateway pode existir sem
+ * credencial Firebase associada.
+ */
+async function resolveFirebaseFields(
+  body: any
+): Promise<{ projectId?: string; clientEmail?: string; privateKey?: string }> {
+  const { syncFirebaseFromTenant, targetTenantId, serviceAccountJson } =
+    body ?? {};
+
+  if (syncFirebaseFromTenant) {
+    const conta = await loadTenantServiceAccount(targetTenantId);
+    return {
+      projectId: conta.projectId,
+      clientEmail: conta.clientEmail,
+      privateKey: conta.privateKey,
+    };
+  }
+
+  if (serviceAccountJson) {
+    const {
+      project_id: projectId,
+      client_email: clientEmail,
+      private_key: privateKey,
+    } = parseServiceAccount(serviceAccountJson);
+
+    if (!projectId || !clientEmail || !privateKey) {
+      throw badRequestError(
+        'JSON incompleto: são necessários os campos project_id, client_email e private_key.'
+      );
+    }
+
+    return { projectId, clientEmail, privateKey };
+  }
+
+  return {};
+}
+
+/**
+ * O srv-catra é multitenant entre PRODUTOS, não só entre clientes - a mesma
+ * tabela pode ter tenants de outros sistemas além do fitware. Este painel só
+ * deve administrar os seus, então toda listagem é restrita aos tenantId que
+ * contenham este valor (ver `search` em GET /gtw/config/tenant no srv-catra).
+ */
+const GATEWAY_CONFIG_TENANT_SCOPE = 'fitware';
+
+/**
+ * Todo tenant criado por esta tela precisa terminar com este sufixo. Derivado do
+ * escopo acima de propósito: é o mesmo termo usado no `search` da listagem, então
+ * um tenant fora do padrão seria criado no srv-catra e nunca apareceria na tela.
+ * Vale só na criação - na edição o identificador é a chave do registro e não pode
+ * mudar, e exigir o sufixo ali apenas impediria editar registros legados.
+ */
+const GATEWAY_CONFIG_TENANT_SUFFIX = `-${GATEWAY_CONFIG_TENANT_SCOPE}`;
+
+/**
+ * Replica a configuração no config store do Fitware (Realtime Database do próprio
+ * tenant), quando o formulário escolheu um tenant para vincular. É opcional: sem
+ * `firebaseTenant`, só o srv-catra é atualizado.
+ *
+ * A apiKey vem do create (único momento em que o srv-catra a devolve) ou, na edição,
+ * de uma leitura administrativa server-to-server - ela nunca trafega pelo browser.
+ */
+async function sincronizarVinculoFirebase({
+  req,
+  firebaseTenant,
+  targetTenantId,
+  apiKeyDoCreate,
+  ativo,
+  habilitarPix,
+  habilitarBoleto,
+}: {
+  req: ITenantAuthenticatedRequest;
+  firebaseTenant: unknown;
+  targetTenantId: string;
+  apiKeyDoCreate?: string;
+  ativo: boolean;
+  habilitarPix: boolean;
+  habilitarBoleto: boolean;
+}): Promise<string | null> {
+  if (!firebaseTenant || typeof firebaseTenant !== 'string') {
+    return null;
+  }
+
+  const tenantNormalizado = firebaseTenant.trim().toLowerCase();
+  assertValidTenantName(tenantNormalizado);
+
+  const apiKey =
+    apiKeyDoCreate ??
+    (
+      await getTenantGatewayConfig(
+        extrairTokenFirebase(req),
+        targetTenantId,
+        true
+      )
+    ).apiKey;
+
+  if (!apiKey) {
+    throw badRequestError(
+      `Não foi possível obter a apiKey de "${targetTenantId}" para gravar no tenant "${tenantNormalizado}".`
+    );
+  }
+
+  await vincularTenantGateway({
+    firebaseTenant: tenantNormalizado,
+    targetTenantId,
+    apiKey,
+    ativo,
+    habilitarPix,
+    habilitarBoleto,
+  });
+
+  return tenantNormalizado;
+}
+
+async function handleListGatewayConfigs(
+  req: ITenantAuthenticatedRequest,
+  res: VercelResponse
+): Promise<void> {
+  validateSrvCatraEnvs();
+
+  const [items, vinculos] = await Promise.all([
+    listAllTenantsGatewayConfig(
+      extrairTokenFirebase(req),
+      GATEWAY_CONFIG_TENANT_SCOPE
+    ),
+    listarVinculos(),
+  ]);
+
+  // O vínculo não existe no srv-catra (é específico do Fitware), então é anexado
+  // aqui para a tela conseguir exibi-lo e pré-selecioná-lo na edição.
+  const itemsComVinculo = items.map(item => ({
+    ...item,
+    firebaseTenant: vinculos[item.tenantId] ?? null,
+  }));
+
+  res.status(EHttpStatusCode.OK).json({
+    success: true,
+    message: 'Configurações de gateway listadas',
+    data: { items: itemsComVinculo, total: itemsComVinculo.length },
+  });
+}
+
+async function handleCreateGatewayConfig(
+  req: ITenantAuthenticatedRequest,
+  res: VercelResponse
+): Promise<void> {
+  validateSrvCatraEnvs();
+
+  const {
+    targetTenantId,
+    company,
+    gateway,
+    firebaseTenant,
+    habilitarPix = false,
+    habilitarBoleto = false,
+  } = req.body ?? {};
+
+  if (!targetTenantId || typeof targetTenantId !== 'string') {
+    throw badRequestError(
+      'Informe o identificador do tenant (targetTenantId).'
+    );
+  }
+
+  if (!targetTenantId.endsWith(GATEWAY_CONFIG_TENANT_SUFFIX)) {
+    throw badRequestError(
+      `O identificador do tenant precisa terminar com "${GATEWAY_CONFIG_TENANT_SUFFIX}" (recebido: "${targetTenantId}").`
+    );
+  }
+
+  if (!company || typeof company !== 'string') {
+    throw badRequestError('Informe a descrição (company).');
+  }
+
+  if (
+    !gateway?.integration ||
+    !gateway?.marketplaceFee ||
+    !gateway?.redirectTenantUri
+  ) {
+    throw badRequestError(
+      'Informe gateway.integration, gateway.marketplaceFee e gateway.redirectTenantUri.'
+    );
+  }
+
+  const firebaseFields = await resolveFirebaseFields(req.body);
+
+  const payload: ICreateTenantGatewayConfigInput = {
+    tenantId: targetTenantId,
+    company,
+    gateway,
+    ...firebaseFields,
+  };
+
+  const tenant = await createTenantGatewayConfig(
+    extrairTokenFirebase(req),
+    payload
+  );
+
+  console.info(
+    `[dev-config] Config de gateway do tenant "${targetTenantId}" criada por ${req.user?.email}`
+  );
+
+  // O srv-catra é a fonte da verdade e já gravou. Se o espelhamento no Firebase
+  // falhar, a mensagem precisa deixar claro que a config existe mas o vínculo não,
+  // em vez de parecer que nada foi salvo.
+  let vinculado: string | null = null;
+
+  try {
+    vinculado = await sincronizarVinculoFirebase({
+      req,
+      firebaseTenant,
+      targetTenantId,
+      apiKeyDoCreate: tenant.apiKey,
+      ativo: true,
+      habilitarPix: Boolean(habilitarPix),
+      habilitarBoleto: Boolean(habilitarBoleto),
+    });
+  } catch (error: any) {
+    res.status(EHttpStatusCode.OK).json({
+      success: false,
+      message: `Configuração de "${targetTenantId}" criada no srv-catra, mas o vínculo com o Firebase falhou: ${error.message}`,
+      data: { tenant },
+    });
+    return;
+  }
+
+  res.status(EHttpStatusCode.CREATED).json({
+    success: true,
+    message:
+      `Configuração de gateway de "${targetTenantId}" criada com sucesso` +
+      (vinculado ? ` e vinculada ao tenant "${vinculado}"` : ''),
+    data: { tenant },
+  });
+}
+
+async function handleUpdateGatewayConfig(
+  req: ITenantAuthenticatedRequest,
+  res: VercelResponse
+): Promise<void> {
+  validateSrvCatraEnvs();
+
+  const {
+    targetTenantId,
+    active,
+    company,
+    gateway,
+    firebaseTenant,
+    habilitarPix = false,
+    habilitarBoleto = false,
+  } = req.body ?? {};
+
+  if (!targetTenantId || typeof targetTenantId !== 'string') {
+    throw badRequestError(
+      'Informe o identificador do tenant (targetTenantId).'
+    );
+  }
+
+  const firebaseFields = await resolveFirebaseFields(req.body);
+
+  const payload: IUpdateTenantGatewayConfigInput = {
+    active,
+    company,
+    gateway,
+    ...firebaseFields,
+  };
+
+  const resultado = await updateTenantGatewayConfig(
+    extrairTokenFirebase(req),
+    targetTenantId,
+    payload
+  );
+
+  console.info(
+    `[dev-config] Config de gateway do tenant "${targetTenantId}" atualizada por ${req.user?.email}`
+  );
+
+  let vinculado: string | null = null;
+
+  try {
+    vinculado = await sincronizarVinculoFirebase({
+      req,
+      firebaseTenant,
+      targetTenantId,
+      // O mesmo toggle controla o gateway no srv-catra e no app do tenant.
+      ativo: gateway?.active ?? true,
+      habilitarPix: Boolean(habilitarPix),
+      habilitarBoleto: Boolean(habilitarBoleto),
+    });
+  } catch (error: any) {
+    res.status(EHttpStatusCode.OK).json({
+      success: false,
+      message: `Configuração de "${targetTenantId}" atualizada no srv-catra, mas o vínculo com o Firebase falhou: ${error.message}`,
+      data: { tenant: resultado },
+    });
+    return;
+  }
+
+  res.status(EHttpStatusCode.OK).json({
+    success: true,
+    message:
+      `Configuração de gateway de "${targetTenantId}" atualizada com sucesso` +
+      (vinculado ? ` e vinculada ao tenant "${vinculado}"` : ''),
+    data: { tenant: resultado },
+  });
+}
+
+async function handleRemoveGatewayConfig(
+  req: ITenantAuthenticatedRequest,
+  res: VercelResponse
+): Promise<void> {
+  validateSrvCatraEnvs();
+
+  const { targetTenantId } = req.body ?? {};
+
+  if (!targetTenantId || typeof targetTenantId !== 'string') {
+    throw badRequestError(
+      'Informe o identificador do tenant (targetTenantId).'
+    );
+  }
+
+  const resultado = await removeTenantGatewayConfig(
+    extrairTokenFirebase(req),
+    targetTenantId
+  );
+
+  console.info(
+    `[dev-config] Config de gateway do tenant "${targetTenantId}" removida por ${req.user?.email}`
+  );
+
+  res.status(EHttpStatusCode.OK).json({
+    success: true,
+    message: `Configuração de gateway de "${targetTenantId}" removida com sucesso`,
+    data: { tenant: resultado },
+  });
+}
+
+/**
+ * Exclui DEFINITIVAMENTE o tenant no srv-catra. Além das travas do próprio
+ * srv-catra (tenant admin, isAdmin, registros de Gateway Config), este painel
+ * só exclui tenants da sua própria família (GATEWAY_CONFIG_TENANT_SCOPE) - o
+ * srv-catra é compartilhado entre produtos e não pode ser usado daqui para
+ * apagar tenants de outro sistema.
+ */
+async function handleDeleteGatewayTenant(
+  req: ITenantAuthenticatedRequest,
+  res: VercelResponse
+): Promise<void> {
+  validateSrvCatraEnvs();
+
+  const { targetTenantId } = req.body ?? {};
+
+  if (!targetTenantId || typeof targetTenantId !== 'string') {
+    throw badRequestError(
+      'Informe o identificador do tenant (targetTenantId).'
+    );
+  }
+
+  if (!targetTenantId.includes(GATEWAY_CONFIG_TENANT_SCOPE)) {
+    throw forbiddenError(
+      `Este painel só exclui tenants da família "${GATEWAY_CONFIG_TENANT_SCOPE}".`
+    );
+  }
+
+  const resultado = await deleteTenantConfig(
+    extrairTokenFirebase(req),
+    targetTenantId
+  );
+
+  // Ação irreversível: fica registrada com quem executou, para auditoria.
+  console.warn(
+    `[dev-config] Tenant "${targetTenantId}" EXCLUÍDO do srv-catra por ${req.user?.email}`
+  );
+
+  res.status(EHttpStatusCode.OK).json({
+    success: true,
+    message: `Tenant "${targetTenantId}" excluído definitivamente`,
+    data: { tenant: resultado },
+  });
+}
+
+/// FIM - CONFIGURAÇÃO DE GATEWAY (srv-catra) ///
+
 async function devConfigHandler(
   req: ITenantAuthenticatedRequest,
   res: VercelResponse
@@ -749,6 +1194,31 @@ async function devConfigHandler(
     if (req.method === EHttpMethod.DELETE) {
       return await handleDescartarProvisionamento(req, res);
     }
+  }
+
+  if (recurso === EDevResource.GATEWAY_CONFIG) {
+    if (req.method === EHttpMethod.GET) {
+      return await handleListGatewayConfigs(req, res);
+    }
+
+    if (req.method === EHttpMethod.POST) {
+      return await handleCreateGatewayConfig(req, res);
+    }
+
+    if (req.method === EHttpMethod.PATCH) {
+      return await handleUpdateGatewayConfig(req, res);
+    }
+
+    if (req.method === EHttpMethod.DELETE) {
+      return await handleRemoveGatewayConfig(req, res);
+    }
+  }
+
+  if (
+    recurso === EDevResource.GATEWAY_TENANT &&
+    req.method === EHttpMethod.DELETE
+  ) {
+    return await handleDeleteGatewayTenant(req, res);
   }
 
   // Os erros sobem para withErrorHandling, que preserva o status definido em

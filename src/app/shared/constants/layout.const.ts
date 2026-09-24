@@ -17,6 +17,7 @@ export const TITULO_LAYOUT: { [key in IValidRoutes]: string } = {
   [ERoutes.CRIAR_PROJETO]: 'Criar Projeto',
   [ERoutes.TENANTS]: 'Configuração de Tenants',
   [ERoutes.ENVIRONMENTS]: 'Configuração de Environments',
+  [ERoutes.GATEWAY_CONFIG]: 'Configuração de Gateway',
   [ERoutes.PERFIL_USUARIO]: 'Meu Perfil',
   [ERoutes.USUARIOS]: 'Usuários do Painel',
 } as const;
@@ -26,6 +27,7 @@ export const ICONES_LAYOUT: { [key in IValidRoutes]: string } = {
   [ERoutes.CRIAR_PROJETO]: 'fa-rocket',
   [ERoutes.TENANTS]: 'fa-hdd',
   [ERoutes.ENVIRONMENTS]: 'fa-sliders-h',
+  [ERoutes.GATEWAY_CONFIG]: 'fa-credit-card',
   [ERoutes.PERFIL_USUARIO]: 'fa-user-tie',
   [ERoutes.USUARIOS]: 'fa-users',
 };

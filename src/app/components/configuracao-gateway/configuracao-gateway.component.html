@@ -1,0 +1,639 @@
+<div class="page-header mb-4">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h4 class="mb-0">
+        <i class="fas fa-credit-card me-2"></i>
+        Configuração de Gateway
+      </h4>
+      <small class="text-muted">
+        Configuração de gateway de pagamento (Mercado Pago e futuros providers)
+        por tenant, no srv-catra.
+      </small>
+    </div>
+    <div class="col-md-4 text-md-end mt-2 mt-md-0">
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="abrirFormulario()"
+        [disabled]="(carregandoGatewayConfigs$ | async) === true"
+      >
+        <i class="fas fa-plus me-2"></i>
+        Nova configuração
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="filters-container">
+  <div class="row">
+    <div class="col-md-6">
+      <label class="form-label">Buscar</label>
+      <div class="input-group">
+        <span class="input-group-text">
+          <i class="fas fa-search"></i>
+        </span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Tenant ou descrição..."
+          [(ngModel)]="filtro"
+          (input)="aplicarFiltro()"
+          [disabled]="(carregandoGatewayConfigs$ | async) === true"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-skeleton
+  *ngIf="carregandoGatewayConfigs$ | async"
+  [isVisible]="true"
+  height="200px"
+  [shape]="'rounded'"
+  [animation]="'wave'"
+></app-skeleton>
+
+<div *ngIf="!(carregandoGatewayConfigs$ | async)" class="table-container">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col">Tenant</th>
+          <th scope="col">Descrição</th>
+          <th scope="col" class="d-none d-md-table-cell">Integração</th>
+          <th scope="col" class="d-none d-lg-table-cell">Taxa</th>
+          <th scope="col" class="d-none d-lg-table-cell">Vínculo</th>
+          <th scope="col">Status</th>
+          <th scope="col" class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of itensFiltrados">
+          <td>
+            <b>{{ item.tenantId }}</b>
+          </td>
+          <td>{{ item.company }}</td>
+          <td class="d-none d-md-table-cell">
+            {{
+              rotulosIntegration[item.gateway?.integration ?? ''] ||
+                item.gateway?.integration ||
+                '—'
+            }}
+          </td>
+          <td class="d-none d-lg-table-cell">
+            <ng-container *ngIf="item.gateway?.marketplaceFee as fee">
+              {{
+                fee.type === 'fixed'
+                  ? (fee.value | currency: 'BRL')
+                  : fee.value + '%'
+              }}
+            </ng-container>
+          </td>
+          <td class="d-none d-lg-table-cell">
+            <span *ngIf="item.firebaseTenant">{{ item.firebaseTenant }}</span>
+            <span
+              *ngIf="!item.firebaseTenant"
+              class="text-muted"
+              title="Sem vínculo: mudanças aqui não chegam ao app do cliente"
+            >
+              —
+            </span>
+          </td>
+          <td>
+            <span
+              class="badge me-1"
+              [class.bg-success]="item.gateway?.active"
+              [class.badge-inativo]="!item.gateway?.active"
+            >
+              {{ item.gateway?.active ? 'Ativo' : 'Inativo' }}
+            </span>
+            <span
+              class="badge"
+              [class.bg-success]="item.gateway?.isConnected"
+              [class.bg-warning]="!item.gateway?.isConnected"
+              [title]="
+                item.gateway?.isConnected
+                  ? 'Vendedor conectou a conta via OAuth'
+                  : 'Aguardando o vendedor concluir o OAuth'
+              "
+            >
+              {{ item.gateway?.isConnected ? 'Conectado' : 'Pendente OAuth' }}
+            </span>
+            <span
+              *ngIf="item.hasFirebaseConfig"
+              class="badge bg-info ms-1"
+              title="Tem credencial Firebase associada"
+            >
+              <i class="fas fa-fire"></i>
+            </span>
+          </td>
+          <td class="p-2">
+            <div class="btn-group btn-group-sm d-flex d-md-inline-flex">
+              <button
+                type="button"
+                class="btn btn-outline-primary"
+                (click)="abrirEdicao(item)"
+                title="Editar"
+              >
+                <i class="fas fa-edit"></i>
+                <span class="d-none d-sm-inline ms-1">Editar</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-danger"
+                (click)="abrirRemocao(item)"
+                title="Remover só a configuração de gateway (o restante do tenant é preservado)"
+              >
+                <i class="fas fa-unlink"></i>
+                <span class="d-none d-sm-inline ms-1">Remover gateway</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-danger"
+                (click)="abrirExclusao(item)"
+                title="Excluir o tenant definitivamente do srv-catra"
+              >
+                <i class="fas fa-trash"></i>
+                <span class="d-none d-sm-inline ms-1">Excluir</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Estado vazio dentro da própria tabela, como na tela de Tenants. -->
+        <tr *ngIf="!itensFiltrados.length">
+          <td colspan="3" class="d-md-none text-center text-muted py-4">
+            <div class="empty-state-mobile">
+              <i class="fas fa-inbox fa-lg mb-2"></i>
+              <br />
+              <small>
+                {{
+                  filtro
+                    ? 'Nenhuma configuração encontrada'
+                    : 'Nenhuma configuração de gateway cadastrada'
+                }}
+              </small>
+            </div>
+          </td>
+          <td
+            colspan="7"
+            class="d-none d-md-table-cell text-center text-muted py-4"
+          >
+            <div class="empty-state-desktop">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <br />
+              {{
+                filtro
+                  ? 'Nenhuma configuração encontrada com o filtro aplicado'
+                  : 'Nenhuma configuração de gateway cadastrada ainda'
+              }}
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal: criar/editar configuração de gateway -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="mostrarFormulario"
+  (click)="fecharFormulario()"
+></div>
+<div class="modal-custom" *ngIf="mostrarFormulario">
+  <div class="modal-conteudo">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">
+        {{
+          isEdicao
+            ? 'Editar configuração de gateway'
+            : 'Nova configuração de gateway'
+        }}
+      </h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharFormulario()"
+      ></button>
+    </div>
+
+    <form [formGroup]="gatewayForm" (ngSubmit)="salvar()">
+      <div class="modal-corpo">
+        <div class="mb-3">
+          <label class="form-label" for="targetTenantId"
+            >Identificador do Tenant *</label
+          >
+          <input
+            id="targetTenantId"
+            type="text"
+            class="form-control"
+            formControlName="targetTenantId"
+            placeholder="acme-fitware"
+            autocomplete="off"
+            [class.is-invalid]="
+              targetTenantId?.invalid && targetTenantId?.touched
+            "
+          />
+          <div class="form-text">
+            Precisa terminar com <code>-fitware</code>. É o que garante que o
+            tenant apareça nesta listagem, que filtra pelos tenants do Fitware.
+          </div>
+          <div class="invalid-feedback">
+            Use letras minúsculas, números e hífen, terminando com
+            <code>-fitware</code> (ex.: <code>acme-fitware</code>).
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="company">Descrição *</label>
+          <input
+            id="company"
+            type="text"
+            class="form-control"
+            formControlName="company"
+            autocomplete="off"
+            [class.is-invalid]="company?.invalid && company?.touched"
+          />
+          <div class="invalid-feedback">Informe a descrição.</div>
+        </div>
+
+        <!-- Na criação o gateway sempre nasce ativo (regra do srv-catra) - o
+        toggle só faz sentido para desativar/reativar um gateway existente. -->
+        <div *ngIf="isEdicao" class="form-check form-switch mb-3">
+          <input
+            id="gatewayActive"
+            type="checkbox"
+            class="form-check-input"
+            formControlName="gatewayActive"
+          />
+          <label class="form-check-label" for="gatewayActive">
+            Gateway ativo
+          </label>
+          <div class="form-text">
+            Desativar bloqueia novos pagamentos deste tenant sem apagar a
+            configuração.
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="integration">Integração *</label>
+            <select
+              id="integration"
+              class="form-select"
+              formControlName="integration"
+              [class.is-invalid]="integration?.invalid && integration?.touched"
+            >
+              <option value="" disabled>Selecione...</option>
+              <option *ngFor="let opcao of opcoesIntegration" [value]="opcao">
+                {{ rotulosIntegration[opcao] || opcao }}
+              </option>
+            </select>
+            <div class="invalid-feedback">Selecione a integração.</div>
+          </div>
+
+          <div class="col-md-3 mb-3">
+            <label class="form-label" for="marketplaceFeeType"
+              >Tipo de taxa *</label
+            >
+            <select
+              id="marketplaceFeeType"
+              class="form-select"
+              formControlName="marketplaceFeeType"
+            >
+              <option *ngFor="let opcao of opcoesFeeType" [value]="opcao">
+                {{ opcao === 'fixed' ? 'Fixa (R$)' : 'Percentual (%)' }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-3 mb-3">
+            <label class="form-label" for="marketplaceFeeValue">Valor *</label>
+            <input
+              id="marketplaceFeeValue"
+              type="number"
+              step="0.01"
+              min="0.01"
+              class="form-control"
+              formControlName="marketplaceFeeValue"
+              [class.is-invalid]="
+                marketplaceFeeValue?.invalid && marketplaceFeeValue?.touched
+              "
+            />
+            <div class="invalid-feedback">Informe um valor maior que zero.</div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="redirectTenantUri">
+            URL de retorno pós-OAuth *
+          </label>
+          <input
+            id="redirectTenantUri"
+            type="text"
+            class="form-control"
+            formControlName="redirectTenantUri"
+            placeholder="https://app-do-cliente.com/dashboard"
+            autocomplete="off"
+            [class.is-invalid]="
+              redirectTenantUri?.invalid && redirectTenantUri?.touched
+            "
+          />
+          <div class="form-text">
+            Para onde o vendedor volta depois de conectar (ou falhar ao
+            conectar) a conta Mercado Pago.
+            <ng-container *ngIf="!isEdicao">
+              Preenchida automaticamente como
+              <code
+                >https://{{
+                  targetTenantId?.value || '&lt;tenant&gt;'
+                }}.gestaoacademia.app.br/dashboard</code
+              >
+              conforme o Tenant acima — edite aqui se for diferente.
+            </ng-container>
+          </div>
+          <div class="invalid-feedback">Informe a URL de retorno.</div>
+        </div>
+
+        <hr />
+
+        <div class="mb-3">
+          <label class="form-label" for="firebaseTenant">
+            Vincular ao app do tenant
+            {{ vinculoObrigatorio ? '*' : '(opcional)' }}
+          </label>
+          <ng-select
+            id="firebaseTenant"
+            [items]="tenantsFirebase"
+            bindLabel="tenant"
+            bindValue="tenant"
+            placeholder="Pesquisar tenant..."
+            notFoundText="Nenhum tenant encontrado"
+            formControlName="firebaseTenant"
+            [class.is-invalid]="
+              firebaseTenant?.invalid && firebaseTenant?.touched
+            "
+          >
+          </ng-select>
+          <div
+            *ngIf="firebaseTenant?.invalid && firebaseTenant?.touched"
+            class="invalid-feedback d-block"
+          >
+            Esta configuração já está vinculada — manter o tenant selecionado é
+            o que garante que a alteração chegue ao app do cliente.
+          </div>
+          <div class="form-text">
+            Grava <code>apiKey</code> e <code>tenantApi</code> em
+            <code>tenantConfig/apiConfig</code> no banco do tenant escolhido,
+            que é como o srv-gesao chama o srv-catra. Cada tenant aceita um
+            vínculo só — se já estiver vinculado a outra configuração, o
+            salvamento é recusado.
+          </div>
+          <div
+            *ngIf="isEdicao && !vinculoObrigatorio && !firebaseTenant?.value"
+            class="alert alert-warning py-2 mt-2 mb-0"
+          >
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            Sem um tenant selecionado, o que for alterado aqui não chega ao app
+            do cliente — inclusive o "Gateway ativo". Selecione o tenant
+            vinculado para manter os dois lados iguais.
+          </div>
+        </div>
+
+        <div class="form-check form-switch mb-2">
+          <input
+            id="habilitarPix"
+            type="checkbox"
+            class="form-check-input"
+            formControlName="habilitarPix"
+          />
+          <label class="form-check-label" for="habilitarPix">
+            Habilitar PIX como forma de pagamento padrão
+          </label>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+          <input
+            id="habilitarBoleto"
+            type="checkbox"
+            class="form-check-input"
+            formControlName="habilitarBoleto"
+          />
+          <label class="form-check-label" for="habilitarBoleto">
+            Habilitar Boleto como forma de pagamento padrão
+          </label>
+          <div class="form-text">
+            Com os dois ligados, o srv-gesao respeita a forma de pagamento já
+            cadastrada no aluno. Com só um, força aquela forma. Só têm efeito
+            para o tenant vinculado acima.
+          </div>
+        </div>
+
+        <hr />
+
+        <div class="mb-3">
+          <label class="form-label" for="firebaseSource">
+            Credencial Firebase deste tenant (opcional)
+          </label>
+          <select
+            id="firebaseSource"
+            class="form-select"
+            formControlName="firebaseSource"
+          >
+            <option value="none">Nenhuma</option>
+            <option value="sync">
+              Sincronizar do tenant já provisionado no painel
+            </option>
+            <option value="manual">Colar JSON manualmente</option>
+          </select>
+          <div class="form-text">
+            Usada pelo srv-catra para autenticar os próprios usuários deste
+            tenant. "Sincronizar" reaproveita a credencial já cadastrada em
+            Configuração de Tenants sem que ela passe pelo navegador.
+          </div>
+        </div>
+
+        <div *ngIf="firebaseSource === 'sync'" class="alert alert-info py-2">
+          <i class="fas fa-info-circle me-1"></i>
+          O backend vai buscar a credencial já provisionada do tenant
+          <b>{{ targetTenantId?.value || '(identificador acima)' }}</b>
+          e enviá-la diretamente ao srv-catra. Se este tenant não estiver
+          provisionado em Configuração de Tenants, o salvamento vai falhar.
+        </div>
+
+        <div *ngIf="firebaseSource === 'manual'" class="mb-2">
+          <label class="form-label" for="serviceAccountJson">
+            JSON da conta de serviço
+          </label>
+          <textarea
+            id="serviceAccountJson"
+            class="form-control fonte-mono"
+            rows="6"
+            formControlName="serviceAccountJson"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder='{ "type": "service_account", "project_id": "...", "private_key": "..." }'
+          ></textarea>
+          <div class="form-text">
+            Firebase Console do projeto do cliente → Configurações do projeto →
+            Contas de serviço → Gerar nova chave privada.
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-rodape">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="fecharFormulario()"
+          [disabled]="salvando"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="salvando">
+          <span *ngIf="salvando" class="loading me-2"></span>
+          {{
+            salvando
+              ? 'Salvando...'
+              : isEdicao
+                ? 'Salvar alterações'
+                : 'Criar configuração'
+          }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: remover configuração de gateway -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="itemParaRemover"
+  (click)="fecharRemocao()"
+></div>
+<div class="modal-custom" *ngIf="itemParaRemover">
+  <div class="modal-conteudo modal-conteudo-pequeno">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0">Remover configuração de gateway</h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharRemocao()"
+      ></button>
+    </div>
+
+    <div class="modal-corpo">
+      <p>
+        Remover a configuração de gateway do tenant
+        <b>{{ itemParaRemover.tenantId }}</b> ({{ itemParaRemover.company }})?
+      </p>
+      <div class="alert alert-warning py-2 mb-0">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        Só a configuração de gateway é removida — os demais dados do tenant no
+        srv-catra (ex: Firebase) são preservados. Os pagamentos desse tenant
+        param de funcionar até uma nova configuração ser criada.
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="fecharRemocao()"
+        [disabled]="removendo"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="confirmarRemocao()"
+        [disabled]="removendo"
+      >
+        <span *ngIf="removendo" class="loading me-2"></span>
+        {{ removendo ? 'Removendo...' : 'Remover' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: EXCLUIR tenant definitivamente (exige digitar o tenantId) -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="itemParaExcluir"
+  (click)="fecharExclusao()"
+></div>
+<div class="modal-custom" *ngIf="itemParaExcluir">
+  <div class="modal-conteudo modal-conteudo-pequeno">
+    <div class="modal-cabecalho">
+      <h5 class="mb-0 text-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Excluir tenant definitivamente
+      </h5>
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="fecharExclusao()"
+        [disabled]="excluindo"
+      ></button>
+    </div>
+
+    <div class="modal-corpo">
+      <p>
+        Excluir o tenant <b>{{ itemParaExcluir.tenantId }}</b> ({{
+          itemParaExcluir.company
+        }}) do srv-catra?
+      </p>
+      <div class="alert alert-danger py-2">
+        <i class="fas fa-ban me-1"></i>
+        <b>Irreversível.</b> Apaga o registro inteiro do tenant no DynamoDB:
+        <code>apiKey</code>, configuração de gateway, credencial Firebase e
+        reCAPTCHA. O tenant deixa de autenticar no srv-catra imediatamente.
+      </div>
+      <div class="alert alert-secondary py-2">
+        <i class="fas fa-info-circle me-1"></i>
+        <b>Não</b> são apagados: os arquivos do tenant no S3, a autorização do
+        vendedor no lado do Mercado Pago e os registros deste painel
+        (Configuração de Tenants/Environments — remova nas respectivas telas).
+      </div>
+
+      <label class="form-label" for="confirmacaoExclusao">
+        Para confirmar, digite <b>{{ itemParaExcluir.tenantId }}</b>
+      </label>
+      <input
+        id="confirmacaoExclusao"
+        type="text"
+        class="form-control"
+        [(ngModel)]="confirmacaoExclusao"
+        (keydown.enter)="confirmarExclusao()"
+        autocomplete="off"
+        spellcheck="false"
+        [disabled]="excluindo"
+      />
+    </div>
+
+    <div class="modal-rodape">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="fecharExclusao()"
+        [disabled]="excluindo"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="confirmarExclusao()"
+        [disabled]="!exclusaoConfirmada || excluindo"
+      >
+        <span *ngIf="excluindo" class="loading me-2"></span>
+        {{ excluindo ? 'Excluindo...' : 'Excluir definitivamente' }}
+      </button>
+    </div>
+  </div>
+</div>
