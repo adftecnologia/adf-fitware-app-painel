@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { ConfiguracaoEnvironmentsComponent } from './components/configuracao-environments/configuracao-environments.component';
+import { ConfiguracaoGatewayComponent } from './components/configuracao-gateway/configuracao-gateway.component';
 import { ConfiguracaoTenantComponent } from './components/configuracao-tenant/configuracao-tenant.component';
 import { CriarProjetoComponent } from './components/criar-projeto/criar-projeto.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
@@ -50,6 +51,11 @@ export const routes: Routes = [
       {
         path: getRoutePath(ERoutes.ENVIRONMENTS),
         component: ConfiguracaoEnvironmentsComponent,
+        canActivate: [RoleGuard],
+      },
+      {
+        path: getRoutePath(ERoutes.GATEWAY_CONFIG),
+        component: ConfiguracaoGatewayComponent,
         canActivate: [RoleGuard],
       },
       {

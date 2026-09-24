@@ -5,6 +5,11 @@ export const environment = {
     isLocalUrl: false,
     baseUrl: '/api/routes',
   },
+  srvCatra: {
+    baseUrl: 'https://orcdev-cloud.adfcloud.com.br/srv-catra',
+    tenantId: 'TENANT_ID_PRODUTION_HERE',
+    apiKey: 'API_KEY_PRODUTION_HERE',
+  },
   firebase: {
     apiKey: 'AIzaSyAoGw9Pq0IU11cOZ_Cym_tAJmvgcoLUXzc',
     authDomain: 'fitmanager-util.firebaseapp.com',

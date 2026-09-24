@@ -1,0 +1,8 @@
+{
+  "/srv-catra": {
+    "target": "https://orcdev-cloud.adfcloud.com.br",
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}
