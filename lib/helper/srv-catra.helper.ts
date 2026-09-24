@@ -105,6 +105,14 @@ export function validateSrvCatraEnvs(): void {
   }
 }
 
+/**
+ * User-Agent explícito: o `fetch` do Node não envia nenhum, e o nginx na frente do
+ * srv-catra bloqueia user-agent vazio (security-blocks.conf), fechando a conexão sem
+ * resposta. O valor também não pode conter termos da lista de bots de lá - "bot",
+ * "crawler", "spider", "curl", "java", "python-requests" e afins.
+ */
+const USER_AGENT = 'adf-painel-fitware/1.0';
+
 const srvCatraError = (message: string, status: number): Error => {
   const error: any = new Error(message);
   error.status = status || EHttpStatusCode.INTERNAL_SERVER_ERROR;
@@ -137,6 +145,7 @@ async function chamarSrvCatra<T>({
       'x-tenant-id': getSrvCatraEnvVar(ESrvCatraEnv.SRV_CATRA_ADMIN_TENANT_ID),
       'x-api-key': getSrvCatraEnvVar(ESrvCatraEnv.SRV_CATRA_ADMIN_API_KEY),
       Authorization: `Bearer ${firebaseIdToken}`,
+      'User-Agent': USER_AGENT,
     },
     ...(body !== undefined && { body: JSON.stringify(body) }),
   });
@@ -148,12 +157,22 @@ async function chamarSrvCatra<T>({
   try {
     dados = JSON.parse(corpo) as ISrvCatraResponse<T>;
   } catch {
-    // Resposta não-JSON: normalmente a página de erro HTML do proxy ou do API
-    // Gateway quando a rota/método não existe naquele ambiente. Sem tratar aqui,
-    // o que chega ao painel é um "Unexpected token '<'" que não diz o que falhou.
+    // Resposta não-JSON: página de erro HTML de alguma camada antes do Lambda
+    // (Cloudflare ou o nginx do proxy reverso). O corpo inteiro vai para o log da
+    // função, porque é ele que identifica a camada; a mensagem devolvida ao painel
+    // fica só com a pista, para não despejar HTML na tela.
+    const doCloudflare = /cloudflare|cf-ray|__cf/i.test(corpo);
+
+    console.error(
+      `[srv-catra] ${method} ${path} devolveu HTTP ${resposta.status} sem JSON. Corpo:`,
+      corpo.slice(0, 2000)
+    );
+
     throw srvCatraError(
-      `O srv-catra respondeu HTTP ${resposta.status} em "${method} ${path}" sem JSON válido. ` +
-        'Confirme se essa rota já está publicada no ambiente apontado por SRV_CATRA_BASE_URL.',
+      `O srv-catra respondeu HTTP ${resposta.status} em "${method} ${path}" sem JSON válido` +
+        (doCloudflare
+          ? ' - a resposta veio do Cloudflare, não do srv-catra, então a requisição foi barrada antes de chegar na API.'
+          : '. Confirme se essa rota já está publicada no ambiente apontado por SRV_CATRA_BASE_URL.'),
       resposta.status
     );
   }
