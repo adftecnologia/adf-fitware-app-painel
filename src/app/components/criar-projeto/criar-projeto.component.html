@@ -596,7 +596,7 @@
         é persistida, então ao voltar numa criação parada ali é preciso digitar
         de novo.
       -->
-      <div class="mt-3" *ngIf="precisaSenhaParaRetomar">
+      <div class="mt-3" *ngIf="etapaPendenteExigeSenha">
         <label class="form-label">Senha do administrador do tenant *</label>
         <input
           type="password"
