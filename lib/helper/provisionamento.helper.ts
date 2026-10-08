@@ -9,10 +9,12 @@ import {
   adicionarFirebase,
   assertValidDisplayName,
   assertValidProjectId,
+  classificarErroFirebaseAdmin,
   EMotivoErroGoogle,
   motivoDoErro,
   criarAppWeb,
   criarInstanciaRtdb,
+  definirRegrasRtdbPadrao,
   criarProjeto,
   habilitarApis,
   habilitarLoginEmailSenha,
@@ -153,6 +155,25 @@ enum ETenantSeedCollection {
 const TENANT_ROLE_ADMIN = 'Admin';
 const TENANT_STATUS_ATIVO = 'Ativo';
 
+/**
+ * Contas de suporte com acesso administrativo a qualquer tenant.
+ *
+ * Espelha SUPER_ADMIN_EMAILS de adf-tabulare... (ponto-eletronic-biometrico,
+ * lib/helper/tenant.helper.ts) — é o app que roda DENTRO de cada tenant, e ele
+ * já concede acesso total a esses e-mails sem exigir nenhum registro em
+ * dados-usuario (ver perfil-acesso.service.ts `hasAccess`). Por isso esta etapa
+ * só precisa garantir que a CONTA exista no Auth do tenant novo - não grava
+ * nada em dados-usuario para eles, seria ignorado mesmo.
+ *
+ * Mantida em código de propósito, igual ao original: alterar exige novo
+ * deploy dos dois lados (aqui e no ponto-eletronic-biometrico) para não
+ * divergir de quem o app do tenant realmente reconhece como super admin.
+ */
+const SUPER_ADMIN_EMAILS: readonly string[] = [
+  'pedrodimas94@gmail.com',
+  'sidaoswat@gmail.com',
+];
+
 /// FIM - ENUMS ///
 
 /// CONSTANTES ///
@@ -187,6 +208,25 @@ export const ROTULO_ETAPAS: Record<EEtapaProvisionamento, string> = {
 export const LOCAIS_RTDB = ['us-central1', 'europe-west1', 'asia-southeast1'];
 
 const SENHA_MINIMA = 6;
+
+/**
+ * Senha usada ao criar/garantir as contas de SUPER_ADMIN_EMAILS em cada tenant
+ * novo. Fixa de propósito (é a mesma pessoa logando em dezenas de tenants) -
+ * mantida só como env var, nunca no código, e nunca devolvida numa resposta.
+ */
+enum EProvisionamentoEnv {
+  SUPER_ADMIN_DEFAULT_PASSWORD = 'SUPER_ADMIN_DEFAULT_PASSWORD',
+}
+
+const getProvisionamentoEnvVar = (key: EProvisionamentoEnv): string => {
+  const value = process.env[key];
+
+  if (!value) {
+    throw new Error(`Variável de ambiente ${key} não configurada`);
+  }
+
+  return value;
+};
 
 /**
  * Quantas vezes uma etapa pode bater em propagação antes de virar erro de fato.
@@ -467,11 +507,20 @@ const executores: Record<
       registro.locationId
     );
 
+    // Instância nova nasce travada (.read/.write: false) - sem isto, o app do
+    // tenant loga mas recebe PERMISSION_DENIED na primeira leitura. Roda
+    // mesmo quando a instância já existia (retomada), porque o criador pode
+    // não ter chegado a esta etapa numa tentativa anterior.
+    // DÉBITO TÉCNICO: ver REGRAS_RTDB_PADRAO em google-cloud.helper.ts - fica
+    // totalmente aberto (.read/.write: true) porque algumas rotinas do app do
+    // tenant acessam sem autenticação, não só "auth != null".
+    await definirRegrasRtdbPadrao(instancia.databaseUrl, registro.projectId);
+
     return {
       // A URL real vem da API porque instâncias regionais usam o domínio
       // firebasedatabase.app, e não firebaseio.com — derivar o valor daria
       // uma URL que não resolve.
-      resumo: `Realtime Database criado em ${instancia.databaseUrl}.`,
+      resumo: `Realtime Database criado em ${instancia.databaseUrl}, com acesso liberado (débito técnico: regras ainda totalmente abertas).`,
       dados: { databaseURL: instancia.databaseUrl },
     };
   },
@@ -576,6 +625,10 @@ const executores: Record<
       senhaAdmin
     );
 
+    // Independente do admin do tenant: garante as contas de suporte fixas
+    // (ver SUPER_ADMIN_EMAILS) em todo tenant novo, sem exceção.
+    const superAdminsGarantidos = await garantirSuperAdmins(contexto.auth);
+
     const agora = new Date().toISOString();
 
     const semeados = await semearSeAusente(contexto.database, {
@@ -616,8 +669,11 @@ const executores: Record<
         `Administrador ${registro.admin.email} criado. ` +
         `Nós semeados: ${semeados.length ? semeados.join(', ') : 'nenhum'}` +
         (preservados > 0
-          ? ` (${preservados} já existiam e foram preservados).`
-          : '.'),
+          ? ` (${preservados} já existiam e foram preservados). `
+          : '. ') +
+        (superAdminsGarantidos.length
+          ? `Contas de suporte garantidas: ${superAdminsGarantidos.join(', ')}.`
+          : 'Nenhuma conta de suporte pôde ser garantida - ver logs.'),
     };
   },
 };
@@ -679,7 +735,10 @@ async function criarOuAtualizarAdmin(
       email: admin.email,
       password: senha,
       displayName: admin.nome,
-      emailVerified: false,
+      // true por paridade com o fluxo oficial de criação de usuário do tenant
+      // (api/routes/create-users.ts) - nada no app lê este campo para decidir
+      // acesso, mas manter os dois iguais evita essa pergunta se surgir de novo.
+      emailVerified: true,
     });
   }
 
@@ -691,6 +750,72 @@ async function criarOuAtualizarAdmin(
   });
 
   return { uid: usuario.uid };
+}
+
+/**
+ * Garante que as contas de SUPER_ADMIN_EMAILS existam no Auth do tenant novo,
+ * com a senha padrão. Nunca escreve em dados-usuario (ver comentário da
+ * constante) - só a conta precisa existir, o app do tenant reconhece o e-mail
+ * sozinho.
+ *
+ * Best-effort de propósito: se um e-mail falhar (ex: já existe com outra
+ * senha que a API não deixa trocar por algum motivo), não deve travar o
+ * provisionamento do tenant em si - a conta do dono do tenant é o caminho
+ * crítico, os super admins são suporte.
+ * @returns E-mails cuja conta foi garantida com sucesso.
+ */
+async function garantirSuperAdmins(auth: Auth): Promise<string[]> {
+  let senha: string;
+
+  try {
+    senha = getProvisionamentoEnvVar(
+      EProvisionamentoEnv.SUPER_ADMIN_DEFAULT_PASSWORD
+    );
+  } catch (erro: any) {
+    // Mesma filosofia best-effort do loop abaixo: a env var ausente não pode
+    // travar a etapa inteira (ela também cria o admin do tenant, que é o
+    // caminho crítico) - só fica sem garantir os super admins desta vez.
+    console.error(
+      `[provisionamento] Não foi possível garantir os super admins: ${erro.message}`
+    );
+    return [];
+  }
+
+  const garantidos: string[] = [];
+
+  for (const email of SUPER_ADMIN_EMAILS) {
+    try {
+      let usuario;
+
+      try {
+        usuario = await auth.getUserByEmail(email);
+        await auth.updateUser(usuario.uid, { password: senha });
+      } catch (erro: any) {
+        if (erro?.code !== 'auth/user-not-found') {
+          throw erro;
+        }
+
+        usuario = await auth.createUser({
+          email,
+          password: senha,
+          emailVerified: true,
+        });
+      }
+
+      await auth.setCustomUserClaims(usuario.uid, {
+        role: TENANT_ROLE_ADMIN,
+        status: TENANT_STATUS_ATIVO,
+      });
+
+      garantidos.push(email);
+    } catch (erro: any) {
+      console.error(
+        `[provisionamento] Falha ao garantir super admin "${email}": ${erro.message}`
+      );
+    }
+  }
+
+  return garantidos;
 }
 
 /// FIM - ETAPAS ///
@@ -773,6 +898,12 @@ export async function executarProximaEtapa(
 
     return atualizado;
   } catch (erro: any) {
+    // O firebase-admin (usado a partir daqui, nunca antes) não passa pelo
+    // chamar()/traduzirErro() que classifica EMotivoErroGoogle - sem isto, o
+    // "invalid_grant: Invalid JWT Signature" da chave recém-criada (etapa
+    // CRIAR_SERVICE_ACCOUNT) cairia direto como falha em vez de propagação.
+    classificarErroFirebaseAdmin(erro);
+
     const mensagem = erro?.message ?? 'Erro desconhecido';
     const acaoManual = acaoManualDoErro(erro);
     const tentativas = (registro.tentativasEtapaAtual ?? 0) + 1;

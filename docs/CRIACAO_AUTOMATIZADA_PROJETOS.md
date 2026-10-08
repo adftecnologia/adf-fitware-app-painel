@@ -331,7 +331,7 @@ A tabela lista **todos** os provisionamentos, inclusive os concluídos — o reg
 | 1   | Criar projeto            | `cloudresourcemanager/v1/projects`   | Cria o projeto e guarda o `projectNumber`                                                                                          |
 | 2   | Habilitar APIs           | `serviceusage…/services:batchEnable` | Firebase, RTDB, Identity Toolkit, IAM, Service Usage, Resource Manager                                                             |
 | 3   | Adicionar Firebase       | `firebase…:addFirebase`              | Transforma o projeto GCP em projeto Firebase                                                                                       |
-| 4   | Criar RTDB               | `firebasedatabase…/instances`        | Instância `DEFAULT_DATABASE`. **Lê a URL real devolvida** — instâncias regionais usam `firebasedatabase.app`, não `firebaseio.com` |
+| 4   | Criar RTDB               | `firebasedatabase…/instances` + `{databaseURL}/.settings/rules.json` | Instância `DEFAULT_DATABASE`. **Lê a URL real devolvida** — instâncias regionais usam `firebasedatabase.app`, não `firebaseio.com`. Em seguida grava as regras padrão (`.read`/`.write`: `auth != null`) — sem isso a instância nasce travada (`false`/`false`) e o app do tenant recebe `PERMISSION_DENIED` no primeiro acesso |
 | 5   | Habilitar Auth ⚠️        | `identitytoolkit/admin/v2/…/config`  | `PATCH` com `updateMask=signIn.email`. **Único passo com ação manual no Spark** — a config não existe e só o console a cria        |
 | 6   | App Web + environment    | `firebase…/webApps`                  | Cria o app, lê a config e grava `clientes/firebaseConfigs/{tenant}`                                                                |
 | 7   | Service account + tenant | `iam…/serviceAccounts`               | Cria a conta, concede `roles/firebase.sdkAdminServiceAgent`, emite a chave e grava `clientes/serviceAccounts/{tenant}` cifrada     |
@@ -358,6 +358,18 @@ Tratar isso dormindo dentro da função seria o caminho errado: o orçamento de 
 | Entre invocações                     | até 8 tentativas, ~6s cada | Propagação lenta. O backend devolve `aguardandoPropagacao`, mantém o status em andamento, e o frontend espera antes de repetir a mesma etapa |
 
 A tela mostra "Aguardando o Google liberar o recurso recém-criado" enquanto isso, para a timeline parada não parecer travada. Se a etapa passar depois de esperar, o resumo no histórico registra em quantas tentativas.
+
+### Regras do Realtime Database
+
+Toda instância RTDB nasce no "modo bloqueado" do console (`.read`/`.write`: `false`) — sem gravar regras por cima, o app do tenant loga normalmente mas qualquer leitura/escrita volta `PERMISSION_DENIED`. A etapa 4 (`definirRegrasRtdbPadrao` em `lib/helper/google-cloud.helper.ts`) grava, logo após criar a instância:
+
+```json
+{ "rules": { ".read": true, ".write": true } }
+```
+
+> ⚠️ **Débito técnico — banco totalmente aberto.** A primeira versão usava `"auth != null"` (exige login, mas nenhum acesso anônimo), que é o certo. Voltou para `true`/`true` porque **algumas rotinas do app do tenant acessam o RTDB sem autenticação** e caíam no mesmo `PERMISSION_DENIED`. Até essas rotinas serem identificadas e corrigidas (ou o banco ganhar regras por caminho/papel), fica assim. **Apertar isso de volta para `"auth != null"` (ou granular) é trabalho pendente** — ver o comentário em `REGRAS_RTDB_PADRAO`.
+
+A chamada vai direto ao host do banco (não à API de gerência `firebasedatabase.googleapis.com`), autenticada com o mesmo access token OAuth da conta conectada — é como o console/gcloud gerenciam regras sem precisar de uma service account. É idempotente, então roda a cada execução da etapa, inclusive numa retomada em que a instância já existia mas as regras ainda não tinham sido definidas.
 
 ### Por que as gravações estão nas etapas 6 e 7, e não numa etapa final
 
