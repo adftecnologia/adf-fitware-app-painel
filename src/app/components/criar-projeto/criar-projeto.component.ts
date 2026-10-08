@@ -580,14 +580,28 @@ export class CriarProjetoComponent implements OnInit {
   }
 
   /**
-   * A senha só é pedida quando a etapa pendente é a de semear dados — a única
-   * que a consome. Nas demais, retomar não precisa de nada além do clique.
+   * A etapa pendente é a que consome a senha — decide se o CAMPO aparece,
+   * independente de já ter sido digitada. Separado de `precisaSenhaParaRetomar`
+   * de propósito: esse outro getter também depende de `senhaRetomada`, então
+   * usá-lo no `*ngIf` do campo fazia o próprio campo desaparecer no primeiro
+   * caractere digitado (`senhaRetomada` deixa de ser vazio, o getter vira
+   * `false`, e o Angular desmonta o input que o usuário estava preenchendo).
    */
-  public get precisaSenhaParaRetomar(): boolean {
+  public get etapaPendenteExigeSenha(): boolean {
     return (
       this.provisionamentoAberto?.etapaAtual ===
-        EEtapaProvisionamento.SEMEAR_DADOS && !this.senhaRetomada
+      EEtapaProvisionamento.SEMEAR_DADOS
     );
+  }
+
+  /**
+   * A senha só é pedida quando a etapa pendente é a de semear dados — a única
+   * que a consome. Nas demais, retomar não precisa de nada além do clique.
+   * Usado só para HABILITAR o botão — para a visibilidade do campo, ver
+   * `etapaPendenteExigeSenha`.
+   */
+  public get precisaSenhaParaRetomar(): boolean {
+    return this.etapaPendenteExigeSenha && !this.senhaRetomada;
   }
 
   public get podeRetomar(): boolean {

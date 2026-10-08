@@ -165,6 +165,27 @@ export const motivoDoErro = (erro: unknown): EMotivoErroGoogle | undefined =>
   (erro as IErroGoogle)?.motivo;
 
 /**
+ * O firebase-admin SDK não passa pelo chamar()/traduzirErro() acima: ele
+ * mesmo troca a chave da service account por um token OAuth e lança o erro
+ * cru do Google ("invalid_grant: Invalid JWT Signature") quando a chave
+ * recém-criada (etapa CRIAR_SERVICE_ACCOUNT) ainda não propagou para os
+ * servidores que validam a assinatura. É a mesma janela de
+ * EMotivoErroGoogle.PROPAGACAO, só que com outro formato de mensagem - por
+ * isso é marcado aqui em vez de duplicar a lógica de retry entre etapas.
+ * Muta e retorna o próprio erro para poder ser usado em cadeia dentro de um
+ * catch.
+ */
+export function classificarErroFirebaseAdmin(erro: unknown): IErroGoogle {
+  const mensagem = (erro as Error)?.message ?? '';
+
+  if (/invalid_grant/i.test(mensagem) && /Invalid JWT Signature/i.test(mensagem)) {
+    (erro as IErroGoogle).motivo = EMotivoErroGoogle.PROPAGACAO;
+  }
+
+  return erro as IErroGoogle;
+}
+
+/**
  * Traduz os erros mais comuns do Google para algo que o painel consiga tratar,
  * mantendo a mensagem original como detalhe.
  *
@@ -573,6 +594,47 @@ export async function criarInstanciaRtdb(
       { type: 'DEFAULT_DATABASE' },
       projectId
     )
+  );
+}
+
+/**
+ * Regras padrão aplicadas a toda instância RTDB criada por este fluxo.
+ *
+ * Uma instância nova nasce travada (`.read`/`.write`: false — o "modo
+ * bloqueado" do console), então o app do tenant recebe PERMISSION_DENIED até
+ * alguém abrir manualmente.
+ *
+ * DÉBITO TÉCNICO: o ideal era `"auth != null"` (autenticado, não público —
+ * chegou a rodar assim), mas algumas rotinas do app do tenant acessam o RTDB
+ * sem autenticação, e caíam nesse PERMISSION_DENIED também. Até elas serem
+ * identificadas e corrigidas (ou ganharem regra própria por caminho), fica
+ * totalmente aberto. Rastrear e apertar essas duas linhas depois.
+ */
+const REGRAS_RTDB_PADRAO = {
+  rules: {
+    '.read': true,
+    '.write': true,
+  },
+};
+
+/**
+ * Define as regras de segurança padrão na instância RTDB do tenant.
+ *
+ * O endpoint fica no próprio host do banco (não em firebasedatabase.googleapis.com),
+ * autenticado com o mesmo access token OAuth das demais chamadas — é assim que
+ * o console/gcloud gerenciam regras sem uma service account. Idempotente: pode
+ * ser chamada de novo sem efeito colateral, então roda a cada execução da etapa
+ * (inclusive quando a instância já existia de uma tentativa anterior).
+ */
+export async function definirRegrasRtdbPadrao(
+  databaseUrl: string,
+  projectId: string
+): Promise<void> {
+  await chamar(
+    'PUT',
+    `${databaseUrl}/.settings/rules.json`,
+    REGRAS_RTDB_PADRAO,
+    projectId
   );
 }
 
